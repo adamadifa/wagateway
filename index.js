@@ -79,23 +79,23 @@ const io = require("socket.io")(server, {
         methods: ["GET", "POST"],
         credentials: true
     },
-    transports: ['websocket', 'polling'],
-    pingTimeout: 60000,
-    pingInterval: 25000,
+    transports: ['websocket'], // Hanya gunakan WebSocket untuk stabilitas
+    pingTimeout: 120000, // 2 menit
+    pingInterval: 25000, // 25 detik
     allowEIO3: true,
     connectTimeout: 60000,
     maxHttpBufferSize: 1e8,
     reconnection: true,
-    reconnectionAttempts: 10,
+    reconnectionAttempts: Infinity, // Coba reconnect terus
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     randomizationFactor: 0.5,
     upgradeTimeout: 60000,
-    allowUpgrades: true,
+    allowUpgrades: false, // Nonaktifkan upgrade untuk stabilitas
     perMessageDeflate: {
         threshold: 2048
     },
-    timeout: 60000,
+    timeout: 120000,
     path: '/socket.io/',
     serveClient: false,
     cookie: false,
@@ -1170,8 +1170,10 @@ io.on("connection", async (socket) => {
                 if (socket.connected) {
                     socket.disconnect();
                 }
-                // Gunakan io.emit untuk broadcast reconnect
-                io.emit('reconnect_attempt');
+                // Tunggu sebentar sebelum mencoba reconnect
+                setTimeout(() => {
+                    io.emit('reconnect_attempt');
+                }, 5000);
             } catch (err) {
                 logger.error('Error handling socket error:', err);
             }
@@ -1186,8 +1188,10 @@ io.on("connection", async (socket) => {
                 } else {
                     logger.warn(`Client not connected, attempting reconnect: ${socket.id}`);
                     try {
-                        // Gunakan io.emit untuk broadcast reconnect
-                        io.emit('reconnect_attempt');
+                        // Tunggu sebentar sebelum mencoba reconnect
+                        setTimeout(() => {
+                            io.emit('reconnect_attempt');
+                        }, 5000);
                     } catch (err) {
                         logger.error('Error in heartbeat reconnect:', err);
                     }
@@ -1196,7 +1200,7 @@ io.on("connection", async (socket) => {
                 logger.error('Heartbeat error', error);
                 clearInterval(heartbeat);
             }
-        }, 5000);
+        }, 25000); // Setiap 25 detik
 
         socket.on('pong', () => {
             logger.info(`Client heartbeat received: ${socket.id}`);
@@ -1208,25 +1212,25 @@ io.on("connection", async (socket) => {
 
             if (reason === 'ping timeout' || reason === 'transport close') {
                 logger.info(`Attempting to reconnect client: ${socket.id}`);
+                // Tunggu lebih lama sebelum mencoba reconnect
                 setTimeout(() => {
                     try {
                         if (!socket.connected) {
-                            // Gunakan io.emit untuk broadcast reconnect
                             io.emit('reconnect_attempt');
                             logger.info(`Reconnect attempt for client: ${socket.id}`);
                         }
                     } catch (error) {
                         logger.error('Reconnect error', error);
-                        // Coba reconnect lagi setelah delay
+                        // Coba reconnect lagi setelah delay yang lebih lama
                         setTimeout(() => {
                             try {
                                 io.emit('reconnect_attempt');
                             } catch (err) {
                                 logger.error('Second reconnect attempt failed:', err);
                             }
-                        }, 5000);
+                        }, 10000);
                     }
-                }, 1000);
+                }, 5000);
             }
 
             saveConnectionState();
@@ -1291,6 +1295,10 @@ io.on("connection", async (socket) => {
 // Tambahkan konfigurasi Socket.IO yang lebih robust
 io.engine.on("connection_error", (err) => {
     logger.error('Connection error:', err);
+    // Tunggu sebentar sebelum mencoba reconnect
+    setTimeout(() => {
+        io.emit('reconnect_attempt');
+    }, 5000);
 });
 
 // Tambahkan event handler untuk reconnection
@@ -1304,10 +1312,18 @@ io.on('reconnect', () => {
 
 io.on('reconnect_error', (error) => {
     logger.error('Reconnection error:', error);
+    // Tunggu sebentar sebelum mencoba reconnect lagi
+    setTimeout(() => {
+        io.emit('reconnect_attempt');
+    }, 5000);
 });
 
 io.on('reconnect_failed', () => {
     logger.error('Failed to reconnect');
+    // Tunggu lebih lama sebelum mencoba reconnect lagi
+    setTimeout(() => {
+        io.emit('reconnect_attempt');
+    }, 10000);
 });
 
 // Tambahkan error handler untuk io
