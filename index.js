@@ -50,7 +50,7 @@ const app = require("express")()
 // Konfigurasi file upload
 app.use(fileUpload({
     createParentPath: true,
-    limits: { 
+    limits: {
         fileSize: 50 * 1024 * 1024 // Batasi ukuran file maksimal 50MB
     },
     abortOnLimit: true,
@@ -383,20 +383,20 @@ const MAX_MEMORY_LOGS = 1000;
 const writeLog = (type, message, error = null) => {
     const timestamp = getTimestamp();
     const logFile = path.join(logDir, `${type}-${new Date().toISOString().split('T')[0]}.log`);
-    
+
     let logMessage = `[${timestamp}] ${message}`;
     if (error) {
         logMessage += `\nError: ${error.message}\nStack: ${error.stack}`;
     }
     logMessage += '\n----------------------------------------\n';
-    
+
     // Tulis ke file
     try {
         fs.appendFileSync(logFile, logMessage);
     } catch (err) {
         console.error('Error writing to log file:', err);
     }
-    
+
     // Simpan di memory
     logStorage[type].unshift({
         timestamp,
@@ -406,12 +406,12 @@ const writeLog = (type, message, error = null) => {
             stack: error.stack
         } : null
     });
-    
+
     // Batasi jumlah log di memory
     if (logStorage[type].length > MAX_MEMORY_LOGS) {
         logStorage[type].pop();
     }
-    
+
     // Tulis ke console dengan warna
     const colors = {
         error: '\x1b[31m',
@@ -420,7 +420,7 @@ const writeLog = (type, message, error = null) => {
         success: '\x1b[32m'
     };
     const reset = '\x1b[0m';
-    
+
     console.log(`${colors[type] || ''}${logMessage}${reset}`);
 };
 
@@ -436,7 +436,7 @@ const logger = {
 app.get('/logs', (req, res) => {
     const type = req.query.type || 'all';
     const limit = parseInt(req.query.limit) || 100;
-    
+
     let logs = [];
     if (type === 'all') {
         Object.keys(logStorage).forEach(key => {
@@ -445,10 +445,10 @@ app.get('/logs', (req, res) => {
     } else if (logStorage[type]) {
         logs = logStorage[type].slice(0, limit);
     }
-    
+
     // Sort berdasarkan timestamp terbaru
     logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
+
     res.json({
         status: 'success',
         data: logs
@@ -460,7 +460,7 @@ app.get('/logs/file', (req, res) => {
     const type = req.query.type || 'error';
     const date = req.query.date || new Date().toISOString().split('T')[0];
     const logFile = path.join(logDir, `${type}-${date}.log`);
-    
+
     try {
         if (fs.existsSync(logFile)) {
             const content = fs.readFileSync(logFile, 'utf8');
@@ -498,7 +498,7 @@ app.get('/status', (req, res) => {
             success: logStorage.success.length
         }
     };
-    
+
     res.json({
         status: 'success',
         data: status
@@ -509,7 +509,7 @@ app.get('/status', (req, res) => {
 app.get('/logs/latest', (req, res) => {
     const type = req.query.type || 'all';
     const limit = parseInt(req.query.limit) || 10;
-    
+
     let logs = [];
     if (type === 'all') {
         Object.keys(logStorage).forEach(key => {
@@ -518,10 +518,10 @@ app.get('/logs/latest', (req, res) => {
     } else if (logStorage[type]) {
         logs = logStorage[type].slice(0, limit);
     }
-    
+
     // Sort berdasarkan timestamp terbaru
     logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
+
     res.json({
         status: 'success',
         data: logs
@@ -534,7 +534,7 @@ async function connectToWhatsApp() {
         logger.info('Starting WhatsApp connection...');
         const { state, saveCreds } = await useMultiFileAuthState('baileys_auth_info');
         let { version, isLatest } = await fetchLatestBaileysVersion();
-        
+
         logger.info(`Using Baileys version: ${version}, isLatest: ${isLatest}`);
 
         sock = makeWASocket({
