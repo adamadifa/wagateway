@@ -1166,7 +1166,14 @@ io.on("connection", async (socket) => {
         // Tambahkan error handler untuk socket
         socket.on('error', (error) => {
             logger.error('Socket error', error);
-            socket.connect();
+            try {
+                if (socket.connected) {
+                    socket.disconnect();
+                }
+                socket.connect();
+            } catch (err) {
+                logger.error('Error reconnecting socket:', err);
+            }
         });
 
         // Tambahkan heartbeat yang lebih agresif
@@ -1177,7 +1184,11 @@ io.on("connection", async (socket) => {
                     logger.info(`Heartbeat sent to client: ${socket.id}`);
                 } else {
                     logger.warn(`Client not connected, attempting reconnect: ${socket.id}`);
-                    socket.connect();
+                    try {
+                        socket.connect();
+                    } catch (err) {
+                        logger.error('Error in heartbeat reconnect:', err);
+                    }
                 }
             } catch (error) {
                 logger.error('Heartbeat error', error);
@@ -1198,11 +1209,20 @@ io.on("connection", async (socket) => {
                 setTimeout(() => {
                     try {
                         if (!socket.connected) {
+                            // Gunakan socket.connect() sebagai gantinya
                             socket.connect();
                             logger.info(`Reconnect attempt for client: ${socket.id}`);
                         }
                     } catch (error) {
                         logger.error('Reconnect error', error);
+                        // Coba reconnect lagi setelah delay
+                        setTimeout(() => {
+                            try {
+                                socket.connect();
+                            } catch (err) {
+                                logger.error('Second reconnect attempt failed:', err);
+                            }
+                        }, 5000);
                     }
                 }, 1000);
             }
@@ -1212,7 +1232,7 @@ io.on("connection", async (socket) => {
 
         // Tambahkan event handler untuk transport
         socket.on('transport', (transport) => {
-            console.log('Client transport changed to:', transport, 'socket id:', socket.id);
+            logger.info('Client transport changed to:', transport, 'socket id:', socket.id);
         });
 
         // Handle request reset session
@@ -1220,7 +1240,7 @@ io.on("connection", async (socket) => {
             try {
                 await resetSession();
             } catch (error) {
-                console.error('Reset session error:', error);
+                logger.error('Reset session error:', error);
                 socket.emit('log', 'Gagal mereset session: ' + error.message);
             }
         });
@@ -1233,7 +1253,7 @@ io.on("connection", async (socket) => {
                     socket.emit('log', 'Maximum reconnection attempts reached. Please refresh the page.');
                 }
             } catch (error) {
-                console.error('Reconnect request error:', error);
+                logger.error('Reconnect request error:', error);
                 socket.emit('log', 'Gagal melakukan reconnect: ' + error.message);
             }
         });
@@ -1257,7 +1277,7 @@ io.on("connection", async (socket) => {
                 soket.emit("log", "Initializing connection...");
             }
         } catch (error) {
-            console.error('Error sending initial state:', error);
+            logger.error('Error sending initial state:', error);
         }
 
         saveConnectionState();
