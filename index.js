@@ -336,22 +336,47 @@ const loadConnectionState = () => {
 // Fungsi untuk handle pesan yang gagal terkirim
 const handleFailedMessages = async () => {
     try {
-        if (!isConnected() || connectionState.messageQueue.length === 0) return;
+        if (!isConnected() || connectionState.messageQueue.length === 0) {
+            return;
+        }
 
+        logger.info(`Processing ${connectionState.messageQueue.length} failed messages...`);
         const failedMessages = [...connectionState.messageQueue];
         connectionState.messageQueue = [];
 
         for (const message of failedMessages) {
             try {
-                await sock.sendMessage(message.to, message.content);
-                console.log('Successfully sent queued message to:', message.to);
+                // Tambahkan delay antara setiap pesan
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Coba kirim pesan
+                const result = await sock.sendMessage(message.to, message.content);
+                logger.success(`Successfully sent queued message to: ${message.to}`);
+                
+                // Tunggu sebentar sebelum mencoba pesan berikutnya
+                await new Promise(resolve => setTimeout(resolve, 500));
             } catch (error) {
-                console.error('Failed to send queued message:', error);
-                connectionState.messageQueue.push(message);
+                logger.error(`Failed to send queued message to ${message.to}:`, error);
+                
+                // Jika gagal, tambahkan kembali ke queue dengan timestamp
+                connectionState.messageQueue.push({
+                    ...message,
+                    retryCount: (message.retryCount || 0) + 1,
+                    lastAttempt: Date.now()
+                });
+                
+                // Jika sudah mencoba lebih dari 3 kali, hapus dari queue
+                if ((message.retryCount || 0) >= 3) {
+                    logger.warn(`Message to ${message.to} removed from queue after 3 failed attempts`);
+                    continue;
+                }
             }
         }
+
+        // Simpan state setelah selesai memproses
+        saveConnectionState();
     } catch (error) {
-        console.error('Error handling failed messages:', error);
+        logger.error('Error handling failed messages:', error);
         // Jangan throw error, biarkan aplikasi tetap berjalan
     }
 };
@@ -542,9 +567,28 @@ async function connectToWhatsApp() {
             logger: log({ level: "silent" }),
             version,
             shouldIgnoreJid: jid => isJidBroadcast(jid),
+            connectTimeoutMs: 60000,
+            defaultQueryTimeoutMs: 60000,
+            retryRequestDelayMs: 250,
+            markOnlineOnConnect: true,
+            keepAliveIntervalMs: 30000,
+            emitOwnEvents: true,
+            generateHighQualityLinkPreview: true,
+            browser: ['Chrome (Linux)', '', ''],
+            getMessage: async () => {
+                return { conversation: "Hello" }
+            }
         });
 
         sock.multi = true;
+
+        // Tambahkan error handler untuk socket
+        sock.ev.on('error', async (err) => {
+            logger.error('WhatsApp socket error:', err);
+            if (!connectionState.isConnecting) {
+                await handleReconnection();
+            }
+        });
 
         sock.ev.on('connection.update', async (update) => {
             try {
@@ -584,6 +628,7 @@ async function connectToWhatsApp() {
                     connectionState.connectionStatus = 'connected';
                     connectionState.lastConnectionTime = Date.now();
 
+                    // Coba kirim ulang pesan yang gagal
                     await handleFailedMessages();
                 }
 
@@ -602,6 +647,10 @@ async function connectToWhatsApp() {
                 saveConnectionState();
             } catch (error) {
                 logger.error('Error in connection.update handler', error);
+                // Coba reconnect jika terjadi error
+                if (!connectionState.isConnecting) {
+                    await handleReconnection();
+                }
             }
         });
 
@@ -612,6 +661,13 @@ async function connectToWhatsApp() {
         logger.error('Error in connectToWhatsApp', error);
         connectionState.connectionStatus = 'disconnected';
         saveConnectionState();
+        
+        // Coba reconnect setelah delay
+        setTimeout(async () => {
+            if (!connectionState.isConnecting) {
+                await handleReconnection();
+            }
+        }, 5000);
     }
 }
 
@@ -622,11 +678,15 @@ const isConnected = () => {
 
 // Optimasi fungsi handleReconnection
 const handleReconnection = async () => {
-    if (connectionState.isConnecting) return;
+    if (connectionState.isConnecting) {
+        logger.info('Reconnection already in progress, skipping...');
+        return false;
+    }
 
     const now = Date.now();
     if (connectionState.lastConnectionAttempt && (now - connectionState.lastConnectionAttempt) < 5000) {
-        return;
+        logger.info('Too soon to attempt reconnection, skipping...');
+        return false;
     }
 
     connectionState.isConnecting = true;
@@ -641,11 +701,12 @@ const handleReconnection = async () => {
                 // Gunakan pesan random untuk ping
                 const pingMessage = getRandomPingMessage();
                 await sock.sendMessage(sock.user.id, { text: pingMessage });
-                console.log('Koneksi WhatsApp masih aktif');
+                logger.success('Koneksi WhatsApp masih aktif');
                 connectionState.connectionStatus = 'connected';
+                connectionState.isConnecting = false;
                 return true;
             } catch (error) {
-                console.log('Koneksi WhatsApp terputus, mencoba reconnect...');
+                logger.warn('Koneksi WhatsApp terputus, mencoba reconnect...', error);
             }
         }
 
@@ -658,11 +719,12 @@ const handleReconnection = async () => {
         // Coba beberapa kali untuk memverifikasi koneksi
         let attempts = 0;
         const maxAttempts = 3;
+        let lastError = null;
 
         while (attempts < maxAttempts) {
             try {
                 if (!sock?.user?.id) {
-                    console.log('User ID tidak tersedia, mencoba lagi...');
+                    logger.warn('User ID tidak tersedia, mencoba lagi...');
                     attempts++;
                     await new Promise(resolve => setTimeout(resolve, 3000));
                     continue;
@@ -674,16 +736,18 @@ const handleReconnection = async () => {
                 // Gunakan pesan random untuk verifikasi
                 const pingMessage = getRandomPingMessage();
                 await sock.sendMessage(sock.user.id, { text: pingMessage });
-                console.log('Reconnect berhasil dan koneksi terverifikasi');
+                logger.success('Reconnect berhasil dan koneksi terverifikasi');
                 connectionState.connectionStatus = 'connected';
                 connectionState.reconnectAttempts = 0;
+                connectionState.isConnecting = false;
 
                 // Coba kirim ulang pesan yang gagal
                 await handleFailedMessages();
                 return true;
             } catch (error) {
+                lastError = error;
                 attempts++;
-                console.log(`Percobaan verifikasi koneksi ${attempts}/${maxAttempts} gagal:`, error.message);
+                logger.warn(`Percobaan verifikasi koneksi ${attempts}/${maxAttempts} gagal:`, error);
 
                 if (attempts < maxAttempts) {
                     // Tunggu sebentar sebelum mencoba lagi
@@ -692,10 +756,11 @@ const handleReconnection = async () => {
             }
         }
 
-        console.log('Gagal verifikasi koneksi setelah beberapa percobaan, mencoba lagi nanti...');
+        logger.error('Gagal verifikasi koneksi setelah beberapa percobaan:', lastError);
+        connectionState.connectionStatus = 'disconnected';
         return false;
     } catch (error) {
-        console.error('Reconnection error:', error);
+        logger.error('Reconnection error:', error);
         connectionState.connectionStatus = 'disconnected';
         return false;
     } finally {
@@ -1133,7 +1198,7 @@ io.on("connection", async (socket) => {
                 setTimeout(() => {
                     try {
                         if (!socket.connected) {
-                            socket.io.reconnect();
+                            socket.connect();
                             logger.info(`Reconnect attempt for client: ${socket.id}`);
                         }
                     } catch (error) {
@@ -1302,6 +1367,13 @@ process.on('uncaughtException', (error) => {
     // Simpan log ke file
     const errorLog = `[${new Date().toISOString()}] Uncaught Exception: ${error.message}\n${error.stack}\n`;
     fs.appendFileSync(path.join(logDir, 'uncaught-exceptions.log'), errorLog);
+
+    // Coba reconnect jika error terkait koneksi
+    if (error.message.includes('connection') || error.message.includes('socket')) {
+        handleReconnection().catch(err => {
+            logger.error('Error during reconnection after uncaught exception:', err);
+        });
+    }
 });
 
 // Optimasi penanganan unhandled rejections
@@ -1310,33 +1382,80 @@ process.on('unhandledRejection', (error) => {
     // Simpan log ke file
     const errorLog = `[${new Date().toISOString()}] Unhandled Rejection: ${error.message}\n${error.stack}\n`;
     fs.appendFileSync(path.join(logDir, 'unhandled-rejections.log'), errorLog);
+
+    // Coba reconnect jika error terkait koneksi
+    if (error.message.includes('connection') || error.message.includes('socket')) {
+        handleReconnection().catch(err => {
+            logger.error('Error during reconnection after unhandled rejection:', err);
+        });
+    }
 });
 
-// Handle process termination
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received. Closing server...');
-    server.close(() => {
-        console.log('Server closed');
+// Handle process termination dengan lebih baik
+const gracefulShutdown = async () => {
+    logger.info('Shutting down gracefully...');
+    
+    try {
+        // Tutup server
+        server.close(() => {
+            logger.info('Server closed');
+        });
+
+        // Tunggu sebentar untuk memastikan semua koneksi tertutup
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Simpan state terakhir
+        saveConnectionState();
+
+        // Keluar dari proses
         process.exit(0);
-    });
+    } catch (error) {
+        logger.error('Error during graceful shutdown:', error);
+        process.exit(1);
+    }
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+
+// Start server dengan error handling yang lebih baik
+const startServer = async () => {
+    try {
+        // Coba koneksi ke WhatsApp
+        await connectToWhatsApp();
+
+        // Start server
+        server.listen(port, host, () => {
+            logger.success(`Server Berjalan pada ${host}:${port}`);
+        });
+
+        // Tambahkan error handler untuk server
+        server.on('error', (error) => {
+            logger.error('Server error:', error);
+            if (error.code === 'EADDRINUSE') {
+                logger.warn(`Port ${port} already in use, trying to kill existing process...`);
+                require('child_process').exec(`npx kill-port ${port}`, (err) => {
+                    if (err) {
+                        logger.error('Error killing port:', err);
+                    } else {
+                        logger.success('Port killed, restarting server...');
+                        server.listen(port, host);
+                    }
+                });
+            }
+        });
+    } catch (error) {
+        logger.error('Error starting server:', error);
+        // Coba restart server setelah delay
+        setTimeout(() => {
+            startServer().catch(err => {
+                logger.error('Failed to restart server:', err);
+            });
+        }, 5000);
+    }
+};
+
+// Start server
+startServer().catch(err => {
+    logger.error('Fatal error starting server:', err);
 });
-
-process.on('SIGINT', () => {
-    console.log('SIGINT received. Closing server...');
-    server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-    });
-});
-
-// Start server dengan error handling
-try {
-    connectToWhatsApp()
-        .catch(err => console.log("unexpected error: " + err));
-
-    server.listen(port, host, () => {
-        console.log(`Server Berjalan pada ${host}:${port}`);
-    });
-} catch (error) {
-    console.error('Error starting server:', error);
-}
