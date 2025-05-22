@@ -1170,9 +1170,10 @@ io.on("connection", async (socket) => {
                 if (socket.connected) {
                     socket.disconnect();
                 }
-                socket.connect();
+                // Gunakan io.emit untuk broadcast reconnect
+                io.emit('reconnect_attempt');
             } catch (err) {
-                logger.error('Error reconnecting socket:', err);
+                logger.error('Error handling socket error:', err);
             }
         });
 
@@ -1185,7 +1186,8 @@ io.on("connection", async (socket) => {
                 } else {
                     logger.warn(`Client not connected, attempting reconnect: ${socket.id}`);
                     try {
-                        socket.connect();
+                        // Gunakan io.emit untuk broadcast reconnect
+                        io.emit('reconnect_attempt');
                     } catch (err) {
                         logger.error('Error in heartbeat reconnect:', err);
                     }
@@ -1209,8 +1211,8 @@ io.on("connection", async (socket) => {
                 setTimeout(() => {
                     try {
                         if (!socket.connected) {
-                            // Gunakan socket.connect() sebagai gantinya
-                            socket.connect();
+                            // Gunakan io.emit untuk broadcast reconnect
+                            io.emit('reconnect_attempt');
                             logger.info(`Reconnect attempt for client: ${socket.id}`);
                         }
                     } catch (error) {
@@ -1218,7 +1220,7 @@ io.on("connection", async (socket) => {
                         // Coba reconnect lagi setelah delay
                         setTimeout(() => {
                             try {
-                                socket.connect();
+                                io.emit('reconnect_attempt');
                             } catch (err) {
                                 logger.error('Second reconnect attempt failed:', err);
                             }
@@ -1284,6 +1286,28 @@ io.on("connection", async (socket) => {
     } catch (error) {
         logger.error('Connection handler error', error);
     }
+});
+
+// Tambahkan konfigurasi Socket.IO yang lebih robust
+io.engine.on("connection_error", (err) => {
+    logger.error('Connection error:', err);
+});
+
+// Tambahkan event handler untuk reconnection
+io.on('reconnect_attempt', () => {
+    logger.info('Attempting to reconnect...');
+});
+
+io.on('reconnect', () => {
+    logger.success('Reconnected successfully');
+});
+
+io.on('reconnect_error', (error) => {
+    logger.error('Reconnection error:', error);
+});
+
+io.on('reconnect_failed', () => {
+    logger.error('Failed to reconnect');
 });
 
 // Tambahkan error handler untuk io
