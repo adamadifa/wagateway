@@ -1340,3 +1340,107 @@ try {
 } catch (error) {
     console.error('Error starting server:', error);
 }
+
+// Endpoint untuk mengirim pesan
+app.post("/send-message", async (req, res) => {
+    const { number, message } = req.body;
+    const fileDikirim = req.files;
+
+    try {
+        if (!isConnected()) {
+            return res.status(500).json({
+                status: false,
+                response: 'WhatsApp belum terhubung'
+            });
+        }
+
+        if (!number) {
+            return res.status(400).json({
+                status: false,
+                response: 'Nomor tujuan tidak ditemukan'
+            });
+        }
+
+        // Format nomor
+        const formattedNumber = number.includes('@s.whatsapp.net') ? number : `${number}@s.whatsapp.net`;
+
+        // Cek apakah nomor terdaftar di WhatsApp
+        const exists = await sock.onWhatsApp(formattedNumber);
+        if (!exists || !exists[0]?.exists) {
+            return res.status(400).json({
+                status: false,
+                response: 'Nomor tidak terdaftar di WhatsApp'
+            });
+        }
+
+        // Handle pengiriman pesan
+        if (!fileDikirim) {
+            try {
+                const result = await sock.sendMessage(exists[0].jid, { text: message });
+                return res.status(200).json({
+                    status: true,
+                    response: result
+                });
+            } catch (error) {
+                // Simpan pesan ke queue jika gagal
+                connectionState.messageQueue.push({
+                    to: exists[0].jid,
+                    content: { text: message }
+                });
+                throw error;
+            }
+        }
+
+        // Handle pengiriman file
+        const file = fileDikirim.file;
+        const fileName = `${Date.now()}_${file.name}`;
+        const filePath = `./uploads/${fileName}`;
+
+        // Simpan file
+        await file.mv(filePath);
+
+        // Tentukan tipe file
+        const fileExtension = path.extname(file.name).toLowerCase();
+        let messageContent = {};
+
+        if (['.jpg', '.jpeg', '.png', '.gif'].includes(fileExtension)) {
+            messageContent = {
+                image: { url: filePath },
+                caption: message
+            };
+        } else if (['.mp3', '.ogg', '.wav'].includes(fileExtension)) {
+            messageContent = {
+                audio: { url: filePath },
+                mimetype: 'audio/mp4',
+                caption: message
+            };
+        } else {
+            messageContent = {
+                document: { url: filePath },
+                mimetype: file.mimetype,
+                fileName: file.name,
+                caption: message
+            };
+        }
+
+        // Kirim pesan dengan file
+        const result = await sock.sendMessage(exists[0].jid, messageContent);
+
+        // Hapus file setelah terkirim
+        if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+        }
+
+        return res.status(200).json({
+            status: true,
+            response: result
+        });
+
+    } catch (error) {
+        console.error('Error sending message:', error);
+        return res.status(500).json({
+            status: false,
+            response: error.message || 'Error sending message'
+        });
+    }
+});
