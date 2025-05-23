@@ -91,7 +91,7 @@ const io = require("socket.io")(server, {
     reconnectionDelayMax: 5000,
     randomizationFactor: 0.5,
     upgradeTimeout: 60000,
-    allowUpgrades: true, // Enable protocol upgrades
+    allowUpgrades: true,
     perMessageDeflate: {
         threshold: 2048
     },
@@ -109,15 +109,21 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Connection', 'keep-alive');
+    res.header('Keep-Alive', 'timeout=60');
     next();
 });
 
-// Tambahkan route untuk health check
+// Optimasi route untuk health check
 app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        connection: connectionState.connectionStatus
+        connection: connectionState.connectionStatus,
+        isAuthenticated: connectionState.isAuthenticated,
+        lastConnectionTime: connectionState.lastConnectionTime,
+        reconnectAttempts: connectionState.reconnectAttempts
     });
 });
 
@@ -1154,8 +1160,8 @@ app.post("/reset-session", async (req, res) => {
     }
 });
 
-// Modifikasi route reconnect untuk menangani error dengan lebih baik
-app.post("/reconnect", async (req, res) => {
+// Optimasi route untuk reconnect
+app.post('/reconnect', async (req, res) => {
     try {
         if (connectionState.reconnectAttempts < connectionState.maxReconnectAttempts) {
             const reconnectSuccess = await handleReconnection();
