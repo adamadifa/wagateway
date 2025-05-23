@@ -79,23 +79,23 @@ const io = require("socket.io")(server, {
         methods: ["GET", "POST"],
         credentials: true
     },
-    transports: ['websocket'], // Hanya gunakan WebSocket untuk stabilitas
-    pingTimeout: 120000, // 2 menit
-    pingInterval: 25000, // 25 detik
+    transports: ['websocket', 'polling'], // Enable both WebSocket and polling
+    pingTimeout: 60000, // Increase ping timeout to 60 seconds
+    pingInterval: 25000, // Keep ping interval at 25 seconds
     allowEIO3: true,
     connectTimeout: 60000,
     maxHttpBufferSize: 1e8,
     reconnection: true,
-    reconnectionAttempts: Infinity, // Coba reconnect terus
+    reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     randomizationFactor: 0.5,
     upgradeTimeout: 60000,
-    allowUpgrades: false, // Nonaktifkan upgrade untuk stabilitas
+    allowUpgrades: true, // Enable protocol upgrades
     perMessageDeflate: {
         threshold: 2048
     },
-    timeout: 120000,
+    timeout: 60000,
     path: '/socket.io/',
     serveClient: false,
     cookie: false,
@@ -386,6 +386,38 @@ const logDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir);
 }
+
+// Konfigurasi log retention
+const LOG_RETENTION_DAYS = 7; // Simpan log selama 7 hari
+const LOG_CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // Bersihkan log setiap 24 jam
+
+// Fungsi untuk membersihkan log lama
+const cleanupOldLogs = () => {
+    try {
+        const now = Date.now();
+        const files = fs.readdirSync(logDir);
+        
+        files.forEach(file => {
+            const filePath = path.join(logDir, file);
+            const stats = fs.statSync(filePath);
+            const fileAge = now - stats.mtime.getTime();
+            const maxAge = LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+            
+            if (fileAge > maxAge) {
+                fs.unlinkSync(filePath);
+                logger.info(`Deleted old log file: ${file}`);
+            }
+        });
+    } catch (error) {
+        logger.error('Error cleaning up old logs:', error);
+    }
+};
+
+// Jalankan cleanup pertama kali saat server start
+cleanupOldLogs();
+
+// Setup interval untuk cleanup otomatis
+setInterval(cleanupOldLogs, LOG_CLEANUP_INTERVAL);
 
 // Fungsi untuk format tanggal
 const getTimestamp = () => {
@@ -1179,40 +1211,60 @@ io.on("connection", async (socket) => {
             }
         });
 
-        // Tambahkan heartbeat yang lebih agresif
+        // Implementasi heartbeat yang lebih robust
+        let missedHeartbeats = 0;
+        const MAX_MISSED_HEARTBEATS = 3;
+        const HEARTBEAT_INTERVAL = 15000; // 15 detik
+        const HEARTBEAT_TIMEOUT = 5000; // 5 detik timeout
+
         const heartbeat = setInterval(() => {
             try {
                 if (socket.connected) {
                     socket.emit('ping');
                     logger.info(`Heartbeat sent to client: ${socket.id}`);
+                    
+                    // Set timeout untuk menunggu pong
+                    const timeout = setTimeout(() => {
+                        missedHeartbeats++;
+                        logger.warn(`Missed heartbeat ${missedHeartbeats}/${MAX_MISSED_HEARTBEATS} for client: ${socket.id}`);
+                        
+                        if (missedHeartbeats >= MAX_MISSED_HEARTBEATS) {
+                            logger.error(`Client ${socket.id} missed too many heartbeats, forcing reconnect`);
+                            clearInterval(heartbeat);
+                            clearTimeout(timeout);
+                            socket.disconnect(true);
+                            setTimeout(() => {
+                                io.emit('reconnect_attempt');
+                            }, 5000);
+                        }
+                    }, HEARTBEAT_TIMEOUT);
+
+                    socket.once('pong', () => {
+                        clearTimeout(timeout);
+                        missedHeartbeats = 0;
+                        logger.info(`Heartbeat received from client: ${socket.id}`);
+                    });
                 } else {
                     logger.warn(`Client not connected, attempting reconnect: ${socket.id}`);
-                    try {
-                        // Tunggu sebentar sebelum mencoba reconnect
-                        setTimeout(() => {
-                            io.emit('reconnect_attempt');
-                        }, 5000);
-                    } catch (err) {
-                        logger.error('Error in heartbeat reconnect:', err);
-                    }
+                    clearInterval(heartbeat);
+                    setTimeout(() => {
+                        io.emit('reconnect_attempt');
+                    }, 5000);
                 }
             } catch (error) {
                 logger.error('Heartbeat error', error);
                 clearInterval(heartbeat);
             }
-        }, 25000); // Setiap 25 detik
+        }, HEARTBEAT_INTERVAL);
 
-        socket.on('pong', () => {
-            logger.info(`Client heartbeat received: ${socket.id}`);
-        });
-
+        // Cleanup saat disconnect
         socket.on('disconnect', (reason) => {
             logger.warn(`Client disconnected, reason: ${reason}, socket id: ${socket.id}`);
             clearInterval(heartbeat);
+            missedHeartbeats = 0;
 
-            if (reason === 'ping timeout' || reason === 'transport close') {
+            if (reason === 'ping timeout' || reason === 'transport close' || reason === 'transport error') {
                 logger.info(`Attempting to reconnect client: ${socket.id}`);
-                // Tunggu lebih lama sebelum mencoba reconnect
                 setTimeout(() => {
                     try {
                         if (!socket.connected) {
@@ -1221,7 +1273,6 @@ io.on("connection", async (socket) => {
                         }
                     } catch (error) {
                         logger.error('Reconnect error', error);
-                        // Coba reconnect lagi setelah delay yang lebih lama
                         setTimeout(() => {
                             try {
                                 io.emit('reconnect_attempt');
@@ -1304,10 +1355,59 @@ io.engine.on("connection_error", (err) => {
 // Tambahkan event handler untuk reconnection
 io.on('reconnect_attempt', () => {
     logger.info('Attempting to reconnect...');
+    
+    // Implementasi exponential backoff untuk reconnect
+    const backoff = {
+        min: 1000,
+        max: 10000,
+        jitter: 0.5,
+        factor: 1.5,
+        attempts: 0
+    };
+
+    const attemptReconnect = () => {
+        backoff.attempts++;
+        const delay = Math.min(
+            backoff.max,
+            backoff.min * Math.pow(backoff.factor, backoff.attempts)
+        );
+        
+        // Tambahkan jitter untuk menghindari reconnect bersamaan
+        const jitter = delay * backoff.jitter * (Math.random() * 2 - 1);
+        const finalDelay = delay + jitter;
+
+        logger.info(`Reconnect attempt ${backoff.attempts} scheduled in ${Math.round(finalDelay)}ms`);
+        
+        setTimeout(() => {
+            try {
+                io.emit('reconnect_attempt');
+                
+                // Reset backoff jika berhasil
+                if (io.engine.clientsCount > 0) {
+                    backoff.attempts = 0;
+                    logger.success('Reconnect successful, resetting backoff');
+                }
+            } catch (error) {
+                logger.error('Reconnect attempt failed:', error);
+                if (backoff.attempts < 10) { // Batasi maksimum percobaan
+                    attemptReconnect();
+                } else {
+                    logger.error('Maximum reconnect attempts reached');
+                    backoff.attempts = 0; // Reset untuk percobaan berikutnya
+                }
+            }
+        }, finalDelay);
+    };
+
+    attemptReconnect();
 });
 
 io.on('reconnect', () => {
     logger.success('Reconnected successfully');
+    // Reset semua state koneksi
+    connectionState.reconnectAttempts = 0;
+    connectionState.isConnecting = false;
+    saveConnectionState();
 });
 
 io.on('reconnect_error', (error) => {
