@@ -661,7 +661,7 @@ async function connectToWhatsApp() {
                         logger.warn('Session logged out, resetting session...');
                         await resetSession();
                     } else {
-                        logger.warn(`Unknown DisconnectReason: ${statusCode}`);
+                        logger.warn(`Unknown DisconnectReason: ${code}`);
                         await handleReconnection();
                     }
                 } else if (connection === 'open') {
