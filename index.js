@@ -351,33 +351,51 @@ const handleFailedMessages = async () => {
         connectionState.messageQueue = [];
 
         for (const message of failedMessages) {
-            try {
-                // Tambahkan delay antara setiap pesan
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Coba kirim pesan
-                const result = await sock.sendMessage(message.to, message.content);
-                logger.success(`Successfully sent queued message to: ${message.to}`);
-                
-                // Tunggu sebentar sebelum mencoba pesan berikutnya
-                await new Promise(resolve => setTimeout(resolve, 500));
-            } catch (error) {
-                logger.error(`Failed to send queued message to ${message.to}:`, error);
-                
-                // Jika gagal, tambahkan kembali ke queue dengan timestamp
+    try {
+        // Validasi message dan properti yang dibutuhkan
+        if (!message || !message.to || !message.content) {
+            logger.warn('Invalid message object in queue, skipping:', message);
+            continue;
+        }
+
+        // Tambahkan delay antara setiap pesan
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Cek koneksi sebelum mengirim pesan
+        if (!isConnected() || !sock?.user?.id) {
+            logger.warn('Socket not connected, re-queue message:', message);
+            connectionState.messageQueue.push({
+                ...message,
+                retryCount: (message.retryCount || 0) + 1,
+                lastAttempt: Date.now()
+            });
+            break; // stop processing jika koneksi putus
+        }
+
+        // Coba kirim pesan
+        try {
+            const result = await sock.sendMessage(message.to, message.content);
+            logger.success(`Successfully sent queued message to: ${message.to}`);
+        } catch (sendErr) {
+            logger.error(`Failed to send queued message to ${message.to}:`, sendErr);
+            // Jika gagal, tambahkan kembali ke queue dengan timestamp
+            if ((message.retryCount || 0) < 3) {
                 connectionState.messageQueue.push({
                     ...message,
                     retryCount: (message.retryCount || 0) + 1,
                     lastAttempt: Date.now()
                 });
-                
-                // Jika sudah mencoba lebih dari 3 kali, hapus dari queue
-                if ((message.retryCount || 0) >= 3) {
-                    logger.warn(`Message to ${message.to} removed from queue after 3 failed attempts`);
-                    continue;
-                }
+            } else {
+                logger.warn(`Message to ${message.to} removed from queue after 3 failed attempts`);
             }
         }
+
+        // Tunggu sebentar sebelum mencoba pesan berikutnya
+        await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+        logger.error('Unexpected error in handleFailedMessages:', error);
+    }
+}
 
         // Simpan state setelah selesai memproses
         saveConnectionState();
@@ -733,10 +751,9 @@ const handleReconnection = async () => {
     connectionState.connectionStatus = 'connecting';
 
     try {
-        // Cek apakah user sudah logout
+        // Ping untuk cek apakah koneksi masih aktif
         if (sock?.user?.id) {
             try {
-                // Gunakan pesan random untuk ping
                 const pingMessage = getRandomPingMessage();
                 await sock.sendMessage(sock.user.id, { text: pingMessage });
                 logger.success('Koneksi WhatsApp masih aktif');
@@ -748,15 +765,12 @@ const handleReconnection = async () => {
             }
         }
 
-        // Jika tidak terhubung atau gagal ping, lakukan reconnect
+        // Lakukan reconnect
         await connectToWhatsApp();
-
-        // Tunggu lebih lama untuk memastikan koneksi terbentuk
         await new Promise(resolve => setTimeout(resolve, 10000));
 
-        // Coba beberapa kali untuk memverifikasi koneksi
         let attempts = 0;
-        const maxAttempts = 3;
+        const maxAttempts = 5;
         let lastError = null;
 
         while (attempts < maxAttempts) {
@@ -768,33 +782,31 @@ const handleReconnection = async () => {
                     continue;
                 }
 
-                // Tunggu sebentar sebelum mencoba mengirim pesan
                 await new Promise(resolve => setTimeout(resolve, 2000));
-
-                // Gunakan pesan random untuk verifikasi
                 const pingMessage = getRandomPingMessage();
                 await sock.sendMessage(sock.user.id, { text: pingMessage });
                 logger.success('Reconnect berhasil dan koneksi terverifikasi');
                 connectionState.connectionStatus = 'connected';
                 connectionState.reconnectAttempts = 0;
                 connectionState.isConnecting = false;
-
-                // Coba kirim ulang pesan yang gagal
                 await handleFailedMessages();
                 return true;
             } catch (error) {
                 lastError = error;
                 attempts++;
                 logger.warn(`Percobaan verifikasi koneksi ${attempts}/${maxAttempts} gagal:`, error);
-
                 if (attempts < maxAttempts) {
-                    // Tunggu sebentar sebelum mencoba lagi
                     await new Promise(resolve => setTimeout(resolve, 3000));
                 }
             }
         }
 
         logger.error('Gagal verifikasi koneksi setelah beberapa percobaan:', lastError);
+        // Jika gagal terus, lakukan reset session otomatis
+        if (connectionState.reconnectAttempts >= 10) {
+            logger.warn('Reconnect attempts exceeded threshold, resetting session...');
+            await resetSession();
+        }
         connectionState.connectionStatus = 'disconnected';
         return false;
     } catch (error) {
