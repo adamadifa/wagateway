@@ -79,23 +79,23 @@ const io = require("socket.io")(server, {
         methods: ["GET", "POST"],
         credentials: true
     },
-    transports: ['websocket', 'polling'], // Enable both WebSocket and polling
-    pingTimeout: 60000, // Increase ping timeout to 60 seconds
-    pingInterval: 25000, // Keep ping interval at 25 seconds
+    transports: ['websocket', 'polling'],
+    pingTimeout: 120000, // 2 menit
+    pingInterval: 40000, // 40 detik
     allowEIO3: true,
-    connectTimeout: 60000,
+    connectTimeout: 120000,
     maxHttpBufferSize: 1e8,
     reconnection: true,
     reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
+    reconnectionDelay: 2000,
+    reconnectionDelayMax: 10000,
     randomizationFactor: 0.5,
-    upgradeTimeout: 60000,
+    upgradeTimeout: 120000,
     allowUpgrades: true,
     perMessageDeflate: {
         threshold: 2048
     },
-    timeout: 60000,
+    timeout: 120000,
     path: '/socket.io/',
     serveClient: false,
     cookie: false,
@@ -619,22 +619,22 @@ async function connectToWhatsApp() {
         logger.info(`Using Baileys version: ${version}, isLatest: ${isLatest}`);
 
         sock = makeWASocket({
-            auth: state,
-            logger: log({ level: "silent" }),
-            version,
-            shouldIgnoreJid: jid => isJidBroadcast(jid),
-            connectTimeoutMs: 60000,
-            defaultQueryTimeoutMs: 60000,
-            retryRequestDelayMs: 250,
-            markOnlineOnConnect: true,
-            keepAliveIntervalMs: 30000,
-            emitOwnEvents: true,
-            generateHighQualityLinkPreview: true,
-            browser: ['Chrome (Linux)', '', ''],
-            getMessage: async () => {
-                return { conversation: "Hello" }
-            }
-        });
+    auth: state,
+    logger: log({ level: "silent" }),
+    version,
+    shouldIgnoreJid: jid => isJidBroadcast(jid),
+    connectTimeoutMs: 90000, // lebih lama agar tidak mudah timeout
+    defaultQueryTimeoutMs: 120000, // lebih lama agar tidak mudah timeout
+    retryRequestDelayMs: 500, // sedikit lebih lama
+    markOnlineOnConnect: true,
+    keepAliveIntervalMs: 60000, // heartbeat lebih jarang
+    emitOwnEvents: true,
+    generateHighQualityLinkPreview: true,
+    browser: ['Chrome (Linux)', '', ''],
+    getMessage: async () => {
+        return { conversation: "Hello" }
+    }
+});
 
         sock.multi = true;
 
@@ -652,27 +652,14 @@ async function connectToWhatsApp() {
                 logger.info(`Connection update: ${connection}`);
 
                 if (connection === 'close') {
-                    const statusCode = lastDisconnect?.error?.output?.statusCode;
-                    connectionState.connectionStatus = 'disconnected';
-                    logger.warn(`Connection closed with status code: ${statusCode}`);
-
-                    if (statusCode === DisconnectReason.badSession) {
-                        logger.error(`Bad Session File, Please Delete ${session} and Scan Again`);
+                    const code = lastDisconnect?.error?.output?.statusCode;
+                    logger.warn(`Connection closed with status code: ${code}`);
+                    if (code === DisconnectReason.connectionReplaced) {
+                        logger.warn('Connection Replaced by another session. Resetting session...');
                         await resetSession();
-                    } else if (statusCode === DisconnectReason.connectionClosed ||
-                        statusCode === DisconnectReason.connectionLost ||
-                        statusCode === DisconnectReason.timedOut) {
-                        logger.warn("Connection lost, attempting to reconnect...");
-                        await handleReconnection();
-                    } else if (statusCode === DisconnectReason.connectionReplaced) {
-                        logger.warn("Connection Replaced, Another New Session Opened");
+                    } else if (code === DisconnectReason.loggedOut) {
+                        logger.warn('Session logged out, resetting session...');
                         await resetSession();
-                    } else if (statusCode === DisconnectReason.loggedOut) {
-                        logger.error(`Device Logged Out, Please Delete ${session} and Scan Again.`);
-                        await resetSession();
-                    } else if (statusCode === DisconnectReason.restartRequired) {
-                        logger.warn("Restart Required, Restarting...");
-                        await handleReconnection();
                     } else {
                         logger.warn(`Unknown DisconnectReason: ${statusCode}`);
                         await handleReconnection();
@@ -803,7 +790,7 @@ const handleReconnection = async () => {
 
         logger.error('Gagal verifikasi koneksi setelah beberapa percobaan:', lastError);
         // Jika gagal terus, lakukan reset session otomatis
-        if (connectionState.reconnectAttempts >= 10) {
+        if (connectionState.reconnectAttempts >= 5) {
             logger.warn('Reconnect attempts exceeded threshold, resetting session...');
             await resetSession();
         }
@@ -1231,9 +1218,9 @@ io.on("connection", async (socket) => {
 
         // Implementasi heartbeat yang lebih robust
         let missedHeartbeats = 0;
-        const MAX_MISSED_HEARTBEATS = 3;
-        const HEARTBEAT_INTERVAL = 15000; // 15 detik
-        const HEARTBEAT_TIMEOUT = 5000; // 5 detik timeout
+        const MAX_MISSED_HEARTBEATS = 5;
+        const HEARTBEAT_INTERVAL = 35000; // 35 detik
+        const HEARTBEAT_TIMEOUT = 15000; // 15 detik timeout
 
         const heartbeat = setInterval(() => {
             try {
@@ -1267,7 +1254,7 @@ io.on("connection", async (socket) => {
                     clearInterval(heartbeat);
                     setTimeout(() => {
                         io.emit('reconnect_attempt');
-                    }, 5000);
+                    }, 10000); // tunggu lebih lama sebelum reconnect
                 }
             } catch (error) {
                 logger.error('Heartbeat error', error);
