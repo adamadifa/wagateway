@@ -1,5 +1,8 @@
-const mysql2 = require("mysql2");
-require("dotenv").config();
+import mysql2 from "mysql2";
+import dotenv from "dotenv";
+
+dotenv.config();
+
 // Create the connection pool. The pool-specific settings are the defaults
 const db = mysql2.createPool({
   host: process.env.DB_HOST,
@@ -35,6 +38,6 @@ function dbQuery(query) {
   });
 }
 
-module.exports = { setStatus, dbQuery, db };
+export { setStatus, dbQuery, db };
 
 // EXPORT

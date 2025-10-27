@@ -16,6 +16,24 @@ class HomeController extends Controller
     {
         $numbers = $request->user()->devices()->latest()->paginate(15);
 
+        // Update selectedDevice session if it exists but doesn't have device_status
+        if (Session::has('selectedDevice')) {
+            $selectedDevice = Session::get('selectedDevice');
+            if (!isset($selectedDevice['device_status'])) {
+                // Get the device from database to get current status
+                $device = $request->user()->devices()->whereId($selectedDevice['device_id'])->first();
+                if ($device) {
+                    Session::put('selectedDevice', [
+                        'device_id' => $device->id,
+                        'device_body' => $device->body,
+                        'device_status' => $device->status ?? 'Unknown',
+                    ]);
+                } else {
+                    // Device not found, clear session
+                    Session::forget('selectedDevice');
+                }
+            }
+        }
 
         $user = $request->user()->withCount(['devices', 'campaigns'])->withCount(['blasts as blasts_pending' => function ($q) {
             return $q->where('status', 'pending');
@@ -25,10 +43,9 @@ class HomeController extends Controller
             return $q->where('status', 'failed');
         }])->withCount('messageHistories')->find($request->user()->id);
 
-
-
         $user['expired_subscription_status'] = $user->expiredSubscription;
         $user['subscription_status'] = $user->isExpiredSubscription ? 'Expired' : $user->active_subscription;
+
         return view('home', compact('numbers', 'user'));
     }
 
@@ -136,7 +153,7 @@ class HomeController extends Controller
         session()->put('selectedDevice', [
             'device_id' => $device->id,
             'device_body' => $device->body,
-            'device_status' => $device->status,
+            'device_status' => $device->status ?? 'Unknown',
         ]);
         return response()->json(['error' => false, 'msg' => 'Device selected!']);
     }

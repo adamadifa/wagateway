@@ -1,17 +1,16 @@
-const {
-  default: makeWASocket,
-  downloadContentFromMessage,
+import makeWASocket, {
   prepareWAMessageMedia,
   generateWAMessageFromContent,
-  delay: delayin,
+  delay as delayin,
   downloadMediaMessage,
-} = require("@whiskeysockets/baileys");
-const mime = require("mime-types");
-const fs = require("fs");
-const { join } = require("path");
-const { default: axios } = require("axios");
-const P = require("pino");
-const { ulid } = require("ulid");
+} from "@whiskeysockets/baileys";
+
+import mime from "mime-types";
+import fs from "fs";
+import { join } from "path";
+import axios from "axios";
+import P from "pino";
+import { ulid } from "ulid";
 
 function formatReceipt(receipt) {
   try {
@@ -54,8 +53,8 @@ function formatReceipt(receipt) {
       /* Brazil formatting */
     }
     // return phoneWa;
-    if (!phoneWa.endsWith("@c.us")) {
-      phoneWa += "@c.us";
+    if (!phoneWa.endsWith("@s.whatsapp.net")) {
+      phoneWa += "@s.whatsapp.net";
     }
     return phoneWa;
 
@@ -79,7 +78,7 @@ async function removeForbiddenCharacters(input) {
 
 async function parseIncomingMessage(msg, sock) {
   const type = Object.keys(msg.message || {})[0];
- 
+
   const body =
     type === "conversation" && msg.message.conversation
       ? msg.message.conversation
@@ -102,14 +101,48 @@ async function parseIncomingMessage(msg, sock) {
 
   const from = msg.key.remoteJid.split("@")[0];
   const media = await getMediaMessage(msg, false, sock);
-  const d = media?.caption ? media.caption.toLowerCase() : body?.toLowerCase();
+  const d = media?.caption ? media.caption : body;
 
   const command = await removeForbiddenCharacters(d);
 
   return { command, from, media };
 }
 
-async function getMediaMessage(msg, inner = false, client) {
+function convertToBuffer(mediaKey) {
+  if (!mediaKey) return null;
+
+  try {
+    if (Buffer.isBuffer(mediaKey)) return mediaKey;
+    if (mediaKey instanceof ArrayBuffer) return Buffer.from(mediaKey);
+    if (
+      Array.isArray(mediaKey) ||
+      (typeof mediaKey === "object" && mediaKey.length !== undefined)
+    ) {
+      return Buffer.from(mediaKey);
+    }
+
+    if (typeof mediaKey === "object") {
+      const keys = Object.keys(mediaKey);
+      const isNumericKeys = keys.every((key) => !isNaN(Number(key)));
+      if (isNumericKeys && keys.length > 0) {
+        const values = keys
+          .sort((a, b) => Number(a) - Number(b))
+          .map((key) => mediaKey[key]);
+        const numericValues = values.filter(
+          (v) => typeof v === "number" && v >= 0 && v <= 255
+        );
+        if (numericValues.length > 0) return Buffer.from(numericValues);
+      }
+    }
+
+    return null;
+  } catch (err) {
+    console.error("Error converting mediaKey to Buffer:", err);
+    return null;
+  }
+}
+
+export async function getMediaMessage(msg, inner = false, client) {
   const MessageSubtype = [
     "ephemeralMessage",
     "documentWithCaptionMessage",
@@ -125,15 +158,16 @@ async function getMediaMessage(msg, inner = false, client) {
   ];
 
   try {
+    // Flatten message jika ada subtype
     for (const subtype of MessageSubtype) {
       if (msg?.message?.[subtype]) {
         msg.message = msg.message[subtype].message;
       }
     }
 
+    // Cari media type
     let mediaMessage;
     let mediaType;
-
     for (const type of TypeMediaMessage) {
       mediaMessage = msg.message?.[type];
       if (mediaMessage) {
@@ -142,26 +176,25 @@ async function getMediaMessage(msg, inner = false, client) {
       }
     }
 
-    if (!mediaMessage) {
-      if (inner) return;
-      return null;
+    if (!mediaMessage) return inner ? undefined : null;
+
+    // Convert mediaKey ke Buffer
+    if (mediaMessage.mediaKey) {
+      mediaMessage.mediaKey = convertToBuffer(mediaMessage.mediaKey);
     }
 
-    if (typeof mediaMessage["mediaKey"] === "object") {
-      msg.message = JSON.parse(JSON.stringify(msg.message));
-    }
-
+    // Download media
     const stream = await downloadMediaMessage(
-      { key: msg?.key, message: msg?.message },
+      { key: msg.key, message: msg.message },
       "buffer",
       {},
       {
-        logger: P({ level: "silent" }),
-        reuploadRequest: client.updateMediaMessage,
+        logger: { level: "silent" },
+        reuploadRequest: client?.updateMediaMessage,
       }
     );
 
-    const ext = mime.extension(mediaMessage?.mimetype);
+    const ext = mime.extension(mediaMessage?.mimetype) || "bin";
     const fileName =
       mediaMessage?.fileName || `${msg.key.id}.${ext}` || `${ulid()}.${ext}`;
 
@@ -173,7 +206,7 @@ async function getMediaMessage(msg, inner = false, client) {
       mediaType,
     };
   } catch (error) {
-    console.log(error);
+    console.log("getMediaMessage error:", error);
     return null;
   }
 }
@@ -208,7 +241,7 @@ const prepareMediaMessage = async (sock, mediaMessage) => {
       const arrayMatch = regex.exec(mediaMessage.media);
       mediaMessage.fileName = arrayMatch[1];
     }
-    mimetype = mime.lookup(mediaMessage.media);
+    let mimetype = mime.lookup(mediaMessage.media);
     if (!mimetype) {
       const head = await axios.head(mediaMessage.media);
       mimetype = head.headers["content-type"];
@@ -303,7 +336,7 @@ async function delayMsg(delay, sock, recipient, typing = false) {
   }
 }
 
-module.exports = {
+export {
   formatReceipt,
   asyncForEach,
   removeForbiddenCharacters,

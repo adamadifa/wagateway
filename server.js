@@ -1,28 +1,29 @@
-"use strict";
-
-const wa = require("./server/whatsapp");
-const fs = require("fs");
-const dbs = require("./server/database/index");
-require("dotenv").config();
-const lib = require("./server/lib");
+import * as wa from "./server/whatsapp.js";
+import fs from "fs";
+import * as dbs from "./server/database/index.js";
+import dotenv from "dotenv";
+dotenv.config();
+import * as lib from "./server/lib/index.js";
 global.log = lib.log;
+
 
 /**
  * EXPRESS FOR ROUTING
  */
-const express = require("express");
+import express from "express";
 const app = express();
-const http = require("http");
+import http from "http";
 const server = http.createServer(app);
 
 /**
  * SOCKET.IO
  */
-const { Server } = require("socket.io");
+import { Server } from "socket.io";
 const io = new Server(server, {
   pingInterval: 25000,
   pingTimeout: 10000,
 });
+
 const port = process.env.PORT_NODE;
 
 app.get("/", (req, res) => {
@@ -34,7 +35,8 @@ app.use((req, res, next) => {
   next();
 });
 
-const bodyParser = require("body-parser");
+import bodyParser from "body-parser";
+
 
 app.use(
   bodyParser.urlencoded({
@@ -46,7 +48,9 @@ app.use(
 
 app.use(bodyParser.json());
 app.use(express.static("src/public"));
-app.use(require("./server/router"));
+import router from "./server/router/index.js"
+
+app.use(router);
 
 io.on("connection", (socket) => {
   console.log("A user connected");

@@ -1,6 +1,7 @@
-const logger = require("./pino");
+import logger from "./pino.js";
+
 const lib = {
   log: logger,
 };
 
-module.exports = lib;
+export default lib;

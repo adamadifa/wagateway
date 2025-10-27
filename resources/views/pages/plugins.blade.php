@@ -22,10 +22,11 @@
         <i class="bi bi-info-circle-fill mt-1"></i>
         <div>
             <strong>Informasi:</strong> Jika satu plugin sudah merespons pesan, maka plugin lain tidak akan dijalankan.
-
             <br>
-
             Khusus untuk plugin berbasis AI (seperti ChatGPT, Claude, atau Gemini), jika lebih dari satu plugin aktif, maka saat sudah ada riwayat percakapan, balasan akan diberikan oleh salah satu AI secara acak. Namun, seluruh percakapan tetap tersinkronisasi dan dibagikan antar plugin AI.
+            <br><br>
+            <strong>Tutorial:</strong>
+            <a href="https://www.youtube.com/playlist?list=PLVY4n00wMJP7h_F9iHWLj_oab1rKuvfa_" target="_blank" rel="noopener">Tonton di YouTube</a>.
         </div>
     </div>
 
@@ -60,11 +61,12 @@
     <div class="card">
         <div class="card-body">
             <div class="d-flex align-items-center mb-4">
-                <h5 class="mb-0">{{ __('Lists Plugins') }}
+                <h5 class="mb-0">
+                    {{ __('Lists Plugins') }}
                     {{ Session::has('selectedDevice') ? __('for ') . Session::get('selectedDevice')['device_body'] : '' }}
                 </h5>
-
             </div>
+
             <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
                 @forelse ($plugins as $plugin)
                 <div class="col">
@@ -73,24 +75,29 @@
                             <h5 class="card-title d-flex justify-content-between align-items-center">
                                 {{ $plugin->name }}
                                 <span class="badge bg-{{ $plugin->is_active ? 'success' : 'secondary' }}">
-                                    {{ $plugin->is_active ? 'Aktif' : 'Nonaktif' }}
+                                    {{ $plugin->is_active ? 'Active' : 'Inactive' }}
                                 </span>
                             </h5>
 
-                            <p class="mb-1"><strong>Tipe Bot:</strong> {{ ucfirst($plugin->typeBot) ?? 'all' }}</p>
-
-
+                            <p class="mb-1">
+                                <strong>Bot Type:</strong> {{ ucfirst($plugin->typeBot) ?? 'All' }}
+                            </p>
 
                             @if ($plugin->description)
-                            <p class="text-muted mt-2">{{ $plugin->description }}</p>
+                            <p class="text-muted mt-2" style="font-size: 0.9rem;">
+                                {{ $plugin->description }}
+                            </p>
+                            @else
+                            <p class="text-muted mt-2" style="font-size: 0.9rem;">
+                                No description available.
+                            </p>
                             @endif
 
                             <div class="d-flex justify-content-between mt-3">
-
-                                <a href="#" class="btn btn-sm btn-outline-primary edit-plugin-btn" data-plugin-id="{{ $plugin->id }}">
+                                <a href="#" class="btn btn-sm btn-outline-primary edit-plugin-btn"
+                                    data-plugin-id="{{ $plugin->id }}">
                                     <i class="bi bi-pencil"></i> Edit
                                 </a>
-
                             </div>
                         </div>
                     </div>
@@ -98,14 +105,13 @@
                 @empty
                 <div class="col">
                     <div class="alert alert-warning text-center">
-                        Belum ada plugin terpasang untuk device ini.
+                        No plugins installed for this device yet.
                     </div>
                 </div>
                 @endforelse
             </div>
-
-
         </div>
+
     </div>
 
 
@@ -233,6 +239,65 @@
     <script src="{{ asset('js/autoreply.js') }}"></script>
     <script>
         const pluginDefinitions = @json($pluginsAvailable);
+        // for mapping data add dynamic input
+        function addDynamicInput(fieldKey) {
+            const container = document.getElementById('dynamic-' + fieldKey);
+            const currentCount = container.querySelectorAll('.dynamic-item').length;
+
+            if (currentCount >= 5) {
+                alert('Maksimal 5 input');
+                return;
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'd-flex gap-2 mb-2 dynamic-item';
+
+            wrapper.innerHTML = `
+            <input type="text" name="extra_data[${fieldKey}][]" placeholder="Key Data" class="form-control" required>
+            <input type="text" name="extra_data[${fieldKey}][]" placeholder="Pertanyaan" class="form-control" required>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeInput(this)">🗑</button>
+        `;
+
+            container.appendChild(wrapper);
+        }
+
+        function addDynamicInputEdit(fieldKey) {
+            const container = document.getElementById('edit-dynamic-' + fieldKey);
+            const currentCount = container.querySelectorAll('.dynamic-item').length;
+
+            if (currentCount >= 5) {
+                alert('Maksimal 5 input');
+                return;
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'd-flex gap-2 mb-2 dynamic-item';
+
+            wrapper.innerHTML = `
+        <input type="text" name="extra_data[${fieldKey}][]" placeholder="Key Data" class="form-control" required>
+        <input type="text" name="extra_data[${fieldKey}][]" placeholder="Pertanyaan" class="form-control" required>
+        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeInput(this)">🗑</button>
+    `;
+
+            container.appendChild(wrapper);
+            updateRemoveButtons(container);
+        }
+
+        function removeInput(btn) {
+            const container = btn.closest('.dynamic-group');
+            btn.closest('.dynamic-item').remove();
+            updateRemoveButtons(container);
+        }
+
+        function updateRemoveButtons(container) {
+            const items = container.querySelectorAll('.dynamic-item');
+            items.forEach((item, index) => {
+                const btn = item.querySelector('button');
+                if (btn) {
+                    btn.classList.toggle('d-none', items.length === 1); // Sembunyikan kalau cuma 1
+                }
+            });
+        }
 
         document.getElementById('plugin_type').addEventListener('change', function() {
             const selected = this.value;
@@ -253,15 +318,28 @@
                     const label = typeof config === "string" ? config : config.label;
                     const type = typeof config === "string" ? "textarea" : config.type;
 
-                    container.innerHTML += type === "text" ?
-                        `<div class="mb-3">
-           <label class="form-label">${label}</label>
-           <input type="text" name="extra_data[${key}]" class="form-control">
-         </div>` :
-                        `<div class="mb-3">
-           <label class="form-label">${label}</label>
-           <textarea name="extra_data[${key}]" class="form-control" rows="2"></textarea>
-         </div>`;
+                    if (type === "dynamic_pair") {
+                        container.innerHTML += `
+                <div class="mb-3">
+                    <label class="form-label">${label}</label>
+                    <div id="dynamic-${key}" class="dynamic-group"></div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addDynamicInput('${key}')">Add Input</button>
+                </div>
+            `;
+                        addDynamicInput(key); // Awal 1 baris
+                    } else if (type === "text") {
+                        container.innerHTML += `
+                <div class="mb-3">
+                    <label class="form-label">${label}</label>
+                    <input type="text" name="extra_data[${key}]" class="form-control">
+                </div>`;
+                    } else {
+                        container.innerHTML += `
+                <div class="mb-3">
+                    <label class="form-label">${label}</label>
+                    <textarea name="extra_data[${key}]" class="form-control" rows="2"></textarea>
+                </div>`;
+                    }
                 });
             }
         });
@@ -290,35 +368,69 @@
                     var container = $('#edit-plugin-fields');
                     container.empty();
 
+                    // Render main field jika ada
                     if (plugin.main_field_label) {
                         container.append(`
-                            <div class="mb-3">
-                                <label class="form-label">${plugin.main_field_label}</label>
-                                <input type="text" name="main_data" class="form-control" value="${data.main_data ?? ''}" required>
-                            </div>
-                        `);
+                    <div class="mb-3">
+                        <label class="form-label">${plugin.main_field_label}</label>
+                        <input type="text" name="main_data" class="form-control" value="${data.main_data ?? ''}" required>
+                    </div>
+                `);
                     }
 
+                    // Render extra fields
                     if (plugin.extra_fields) {
                         $.each(plugin.extra_fields, function(key, config) {
                             const label = typeof config === "string" ? config : config.label;
                             const type = typeof config === "string" ? "textarea" : config.type;
                             const val = (data.extra_data && data.extra_data[key]) ? data.extra_data[key] : '';
 
-                            if (type === "text") {
+                            if (type === "dynamic_pair") {
                                 container.append(`
-        <div class="mb-3">
-          <label class="form-label">${label}</label>
-          <input type="text" name="extra_data[${key}]" class="form-control" value="${val}">
-        </div>
-      `);
+                            <div class="mb-3">
+                                <label class="form-label">${label}</label>
+                                <div id="edit-dynamic-${key}" class="dynamic-group"></div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addDynamicInputEdit('${key}')">Add Input</button>
+                            </div>
+                        `);
+
+                                const group = $('#edit-dynamic-' + key);
+
+                                if (val && typeof val === 'object') {
+                                    Object.entries(val).forEach(([k, v]) => {
+                                        const wrapper = $(`
+                                    <div class="d-flex gap-2 mb-2 dynamic-item">
+                                        <input type="text" name="extra_data[${key}][]" placeholder="Key Data" class="form-control" required value="${k}">
+                                        <input type="text" name="extra_data[${key}][]" placeholder="Pertanyaan" class="form-control" required value="${v}">
+                                        <button type="button" class="btn btn-outline-danger btn-sm">🗑</button>
+                                    </div>
+                                `);
+                                        wrapper.find('button').on('click', function() {
+                                            $(this).closest('.dynamic-item').remove();
+                                            updateRemoveButtons(group[0]);
+                                        });
+                                        group.append(wrapper);
+                                    });
+                                } else {
+                                    addDynamicInputEdit(key);
+                                }
+
+                                updateRemoveButtons(group[0]);
+
+                            } else if (type === "text") {
+                                container.append(`
+                            <div class="mb-3">
+                                <label class="form-label">${label}</label>
+                                <input type="text" name="extra_data[${key}]" class="form-control" value="${val}">
+                            </div>
+                        `);
                             } else {
                                 container.append(`
-        <div class="mb-3">
-          <label class="form-label">${label}</label>
-          <textarea name="extra_data[${key}]" class="form-control" rows="2">${val}</textarea>
-        </div>
-      `);
+                            <div class="mb-3">
+                                <label class="form-label">${label}</label>
+                                <textarea name="extra_data[${key}]" class="form-control" rows="2">${val}</textarea>
+                            </div>
+                        `);
                             }
                         });
                     }

@@ -1,5 +1,6 @@
-const { ulid } = require("ulid");
-const { prepareMediaMessage } = require("../lib/helper");
+import { ulid } from "ulid";
+import { prepareMediaMessage } from "../lib/helper.js";
+
 class Row {
   constructor(props) {
     Object.assign(this, props);
@@ -91,4 +92,4 @@ const formatListMsg = async (sections, footer, message, sock, image) => {
   };
 };
 
-module.exports = { formatListMsg, Section };
+export { formatListMsg, Section };

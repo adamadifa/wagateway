@@ -9,8 +9,7 @@
                             <div class="px-6 py-4 border-b border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center">
-                                        <div
-                                            class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
                                             <i class="bi bi-telephone text-green-600 text-xl"></i>
                                         </div>
                                         <div>
@@ -101,8 +100,7 @@
                             <div class="px-6 py-4 border-b border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <h3 class="text-lg font-semibold text-gray-900">Phonebooks</h3>
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                         <i class="bi bi-folder mr-1"></i>
                                         Groups
                                     </span>
@@ -124,8 +122,7 @@
                             <!-- Phonebook List -->
                             <div class="phonebook-list-container px-6 py-4">
                                 <div class="phone-book-list h-full">
-                                    <div
-                                        class="d-flex justify-content-center align-items-center load-phonebook text-gray-500 py-8">
+                                    <div class="d-flex justify-content-center align-items-center load-phonebook text-gray-500 py-8">
                                         <div class="text-center">
                                             <i class="bi bi-folder text-4xl mb-2"></i>
                                             <p>No phonebooks found</p>
@@ -136,8 +133,7 @@
 
                             <!-- Load More -->
                             <div class="px-6 py-4 border-t border-gray-200">
-                                <button
-                                    class="load-more w-full py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                <button class="load-more w-full py-2 px-4 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                                     data-page="1">
                                     <i class="bi bi-arrow-down mr-2"></i>
                                     Load More
@@ -161,18 +157,15 @@
                                         </button>
                                     </div>
                                     <div class="flex items-center space-x-2">
-                                        <button
-                                            class="add-contact p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                                            onclick="addContact()" title="Add Contact">
+                                        <button class="add-contact p-2 text-gray-400 hover:text-gray-600 transition-colors" onclick="addContact()"
+                                            title="Add Contact">
                                             <i class="bi bi-person-plus"></i>
                                         </button>
-                                        <button
-                                            class="import-contact p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        <button class="import-contact p-2 text-gray-400 hover:text-gray-600 transition-colors"
                                             onclick="importContact()" title="Import">
                                             <i class="bi bi-upload"></i>
                                         </button>
-                                        <button
-                                            class="export-contact p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                        <button class="export-contact p-2 text-gray-400 hover:text-gray-600 transition-colors"
                                             onclick="exportContact()" title="Export">
                                             <i class="bi bi-download"></i>
                                         </button>
@@ -199,8 +192,7 @@
                                 </div>
 
                                 <!-- Loading/Empty State -->
-                                <div
-                                    class="d-flex justify-content-center align-items-center h-full process-get-contact text-gray-500">
+                                <div class="d-flex justify-content-center align-items-center h-full process-get-contact text-gray-500">
                                     <div class="text-center">
                                         <i class="bi bi-people text-4xl mb-2"></i>
                                         <p>Please select a phonebook to show contacts</p>
@@ -228,8 +220,7 @@
                             </div>
                             <h3 class="text-lg font-semibold">Create New Phonebook</h3>
                         </div>
-                        <button type="button" onclick="closePhonebookModal()"
-                            class="text-white hover:text-gray-200 transition-colors">
+                        <button type="button" onclick="closePhonebookModal()" class="text-white hover:text-gray-200 transition-colors">
                             <i class="bi bi-x-lg text-xl"></i>
                         </button>
                     </div>
@@ -289,8 +280,7 @@
                             </div>
                             <h3 class="text-lg font-semibold">Add New Contact</h3>
                         </div>
-                        <button type="button" onclick="closeContactModal()"
-                            class="text-white hover:text-gray-200 transition-colors">
+                        <button type="button" onclick="closeContactModal()" class="text-white hover:text-gray-200 transition-colors">
                             <i class="bi bi-x-lg text-xl"></i>
                         </button>
                     </div>
@@ -349,8 +339,7 @@
                             </div>
                             <h3 class="text-lg font-semibold">Import Contacts</h3>
                         </div>
-                        <button type="button" onclick="closeImportModal()"
-                            class="text-white hover:text-gray-200 transition-colors">
+                        <button type="button" onclick="closeImportModal()" class="text-white hover:text-gray-200 transition-colors">
                             <i class="bi bi-x-lg text-xl"></i>
                         </button>
                     </div>

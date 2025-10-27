@@ -1,6 +1,7 @@
-const wa = require("../whatsapp");
-const { formatReceipt } = require("./helper");
-const fs = require("fs");
+import * as wa from "../whatsapp.js";
+import { formatReceipt } from "./helper.js";
+
+
 const checkDestination = async (req, res, next) => {
   const { token, number } = req.body;
   if (token && number) {
@@ -39,4 +40,4 @@ const checkConnectionBeforeBlast = async (req, res, next) => {
   // }
 };
 
-module.exports = { checkDestination, checkConnectionBeforeBlast };
+export { checkDestination, checkConnectionBeforeBlast };

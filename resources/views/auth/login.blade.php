@@ -1,66 +1,195 @@
-<x-layout-auth>
-    @slot('title', 'Login')
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
-    <main class="authentication-content mt-5">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12 col-lg-4 mx-auto">
-                    <div class="card shadow rounded-5 overflow-hidden">
-                        <div class="card-body p-4 p-sm-5">
-                            @if (session()->has('alert'))
-                                <x-alert>
-                                    @slot('type', session('alert')['type'])
-                                    @slot('msg', session('alert')['msg'])
-                                </x-alert>
-                            @endif
-                            <h5 class="card-title">Sign In</h5>
-                            <p class="card-text mb-5">Hi, welcome to MPWA MD version.</p>
-                            <form class="form-body" action="{{ route('login') }}" method="POST">
-                                @csrf
-                                <div class="row g-3">
-                                    <div class="col-12">
-                                        <label for="username" class="form-label">Username</label>
-                                        <div class="ms-auto position-relative">
-                                            <div class="position-absolute top-50 translate-middle-y search-icon px-3">
-                                                <i class="bi bi-person-fill"></i>
-                                            </div>
-                                            <input type="text"
-                                                class="form-control radius-30 ps-5 {{ $errors->has('username') ? 'is-invalid' : '' }}"
-                                                id="username" name="username" placeholder="Username" required>
-                                        </div>
-                                        <p class="text-danger">
-                                            @error('username')
-                                                {{ $message }}
-                                            @enderror
-                                        </p>
-                                    </div>
-                                    <div class="col-12">
-                                        <label for="password" class="form-label">Enter Password</label>
-                                        <div class="ms-auto position-relative">
-                                            <div class="position-absolute top-50 translate-middle-y search-icon px-3"><i
-                                                    class="bi bi-lock-fill"></i></div>
-                                            <input type="password" name="password" class="form-control radius-30 ps-5"
-                                                id="password" placeholder="Enter Password" required>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
+    <title>Login | MPWA MD version</title>
 
-                                        </div>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                            950: '#172554'
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
 
-                                    </div>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-                                    <div class="col-12">
-                                        <div class="d-grid">
-                                            <button type="submit" class="btn btn-primary radius-30">Sign In</button>
-                                        </div>
-                                    </div>
-                                    <div class="col-12">
-                                        <p class="mb-0">Don't have an account yet? <a
-                                                href="{{ route('register') }}">Sign up here</a></p>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.9.1/font/bootstrap-icons.css">
+
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
+        }
+
+        .glass-effect {
+            backdrop-filter: blur(15px);
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-focus:focus {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(59, 130, 246, 0.4);
+        }
+
+        .floating-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        .blue-glow {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+
+<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+    <!-- Background Elements -->
+    <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-30 floating-animation">
+        </div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-25 floating-animation"
+            style="animation-delay: 2s;"></div>
+        <div class="absolute top-40 left-40 w-80 h-80 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 floating-animation"
+            style="animation-delay: 4s;"></div>
+        <div class="absolute bottom-20 right-20 w-60 h-60 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-15 floating-animation"
+            style="animation-delay: 1s;"></div>
+    </div>
+
+    <!-- Login Card -->
+    <div class="relative w-full max-w-md">
+        <!-- Glass Card -->
+        <div class="glass-effect rounded-3xl p-8 shadow-2xl">
+            <!-- Logo/Brand -->
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <i class="bi bi-whatsapp text-3xl text-green-500"></i>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2">Welcome Back</h1>
+
+            </div>
+
+            <!-- Alert Messages -->
+            @if (session()->has('alert'))
+                <div
+                    class="mb-6 p-4 rounded-xl {{ session('alert')['type'] === 'success' ? 'bg-green-500/20 border border-green-500/30' : 'bg-red-500/20 border border-red-500/30' }} text-white">
+                    <div class="flex items-center">
+                        <i class="bi {{ session('alert')['type'] === 'success' ? 'bi-check-circle' : 'bi-exclamation-triangle' }} mr-2"></i>
+                        {{ session('alert')['msg'] }}
                     </div>
                 </div>
-            </div>
+            @endif
+
+            <!-- Login Form -->
+            <form action="{{ route('login') }}" method="POST" class="space-y-6">
+                @csrf
+
+                <!-- Username Field -->
+                <div class="space-y-2">
+                    <label for="username" class="block text-sm font-medium text-white/90">Username</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="bi bi-person text-white/60"></i>
+                        </div>
+                        <input type="text" id="username" name="username"
+                            class="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent transition-all duration-300 input-focus {{ $errors->has('username') ? 'border-red-400' : '' }}"
+                            placeholder="Enter your username" required>
+                    </div>
+                    @error('username')
+                        <p class="text-red-300 text-sm mt-1 flex items-center">
+                            <i class="bi bi-exclamation-circle mr-1"></i>
+                            {{ $message }}
+                        </p>
+                    @enderror
+                </div>
+
+                <!-- Password Field -->
+                <div class="space-y-2">
+                    <label for="password" class="block text-sm font-medium text-white/90">Password</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="bi bi-lock text-white/60"></i>
+                        </div>
+                        <input type="password" id="password" name="password"
+                            class="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-transparent transition-all duration-300 input-focus {{ $errors->has('password') ? 'border-red-400' : '' }}"
+                            placeholder="Enter your password" required>
+                    </div>
+                    @error('password')
+                        <p class="text-red-300 text-sm mt-1 flex items-center">
+                            <i class="bi bi-exclamation-circle mr-1"></i>
+                            {{ $message }}
+                        </p>
+                    @enderror
+                </div>
+
+                <!-- Login Button -->
+                <button type="submit"
+                    class="w-full bg-white text-primary-600 font-semibold py-3 px-4 rounded-xl hover:bg-white/90 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-300 btn-hover">
+                    <i class="bi bi-box-arrow-in-right mr-2"></i>
+                    Sign In
+                </button>
+
+                <!-- Register Link -->
+                <div class="text-center">
+                    <p class="text-white/80 text-sm">
+                        Don't have an account?
+                        <a href="{{ route('register') }}" class="text-white font-semibold hover:text-white/80 transition-colors duration-200">
+                            Sign up here
+                        </a>
+                    </p>
+                </div>
+            </form>
         </div>
-    </main>
-</x-layout-auth>
+
+        <!-- Footer -->
+        <div class="text-center mt-8">
+            <p class="text-white/60 text-sm">© 2024 MPWA MD version. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+
+</html>

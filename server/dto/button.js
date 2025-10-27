@@ -1,5 +1,5 @@
-const { ulid } = require("ulid");
-const { prepareMediaMessage } = require("../lib/helper");
+import { ulid } from "ulid";
+import { prepareMediaMessage } from "../lib/helper.js";
 
 class Button {
   constructor(props) {
@@ -108,4 +108,4 @@ const formatButtonMsg = async (buttons, footer, msg, sock, image = null) => {
     //  },
   };
 };
-module.exports = { Button, formatButtonMsg };
+export { Button, formatButtonMsg };

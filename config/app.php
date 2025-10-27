@@ -14,7 +14,7 @@ return [
     */
 
     'name' => env('APP_NAME', 'MPWA'),
-    'version' => env('APP_VERSION', '9.5.1'),
+    'version' => env('APP_VERSION', '9.6.1'),
 
     /*
     |--------------------------------------------------------------------------

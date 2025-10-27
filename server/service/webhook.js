@@ -1,6 +1,6 @@
-const axios = require("axios");
+import axios from "axios";
 
-exports.sendWebhook = async ({
+export const sendWebhook = async ({
   device,
   command,
   media,
@@ -22,6 +22,7 @@ exports.sendWebhook = async ({
     };
 
     console.log("forward to", url);
+
     const res = await axios.post(url, data, {
       headers: { "Content-Type": "application/json" },
       maxContentLength: 100 * 5024 * 1024,

@@ -14,34 +14,36 @@ class TagController extends Controller
 {
 
     protected $wa;
-    public function __construct(WhatsappService $whatsappService )
+    public function __construct(WhatsappService $whatsappService)
     {
-        
-        $this->wa = $whatsappService; 
+
+        $this->wa = $whatsappService;
     }
-  
-    public function index(){
+
+    public function index()
+    {
         return view('pages.phonebook.index');
     }
 
-    public function getPhonebook(Request $request){
-        if($request->ajax()){
-            $phonebooks = $request->user()->phonebooks()->when($request->search, function($query) use ($request){
-                $query->where('name','like','%'.$request->search.'%');
+    public function getPhonebook(Request $request)
+    {
+        if ($request->ajax()) {
+            $phonebooks = $request->user()->phonebooks()->when($request->search, function ($query) use ($request) {
+                $query->where('name', 'like', '%' . $request->search . '%');
             })->latest()->paginate(15);
 
-            $html = view('pages.phonebook.dataphonebook',compact('phonebooks'))->render();
+            $html = view('pages.phonebook.dataphonebook', compact('phonebooks'))->render();
             $last_page = $phonebooks->lastPage();
             $current_page = $phonebooks->currentPage();
 
-            return response()->json([ 'html' => $html,'last_page' => $last_page,'current_page' => $current_page]);
-            
+            return response()->json(['html' => $html, 'last_page' => $last_page, 'current_page' => $current_page]);
         }
     }
 
-    public function store(Request $request){
+    public function store(Request $request)
+    {
         $request->validate([
-            'name' => ['required','min:3','unique:tags']
+            'name' => ['required', 'min:3', 'unique:tags']
         ]);
 
         Tag::create([
@@ -49,83 +51,86 @@ class TagController extends Controller
             'name' => $request->name
         ]);
 
-        return back()->with('alert',[
+        return back()->with('alert', [
             'type' => 'success',
             'msg' => 'Success add tag!'
         ]);
     }
 
 
-    public function destroy(Request $request){
+    public function destroy(Request $request)
+    {
         try {
             //code...
             $t = Tag::with('contacts')->find($request->id);
             $t->delete();
-            return back()->with('alert',[
+            return back()->with('alert', [
                 'type' => 'success',
                 'msg' => 'Success delete tag!'
             ]);
         } catch (\Throwable $th) {
-          return back()->with('alert',['type' => 'danger','msg' => 'Something went wrong! (dt)']);
+            return back()->with('alert', ['type' => 'danger', 'msg' => 'Something went wrong! (dt)']);
         }
     }
 
-    public function fetchGroups(Request $request){
-       try {
-        if(!$request->device){
-            return back()->with('alert',[ 'type' => 'danger','msg' => 'Please select device first!']);
-        }
-        $device = Device::find($request->device);
-        if($device->status != 'Connected'){
-                return back()->with('alert', ['type' => 'danger', 'msg' => 'Your sender is not connected!' ]);
-        }
-        // add cache for 60 minutes
-        $respon = Cache::remember('groups'.$device->body, 60, function () use ($device) {
-           return $this->wa->fetchGroups($device);
-        });
+    public function fetchGroups(Request $request)
+    {
+        try {
+            if (!$request->device) {
+                return back()->with('alert', ['type' => 'danger', 'msg' => 'Please select device first!']);
+            }
+            $device = Device::find($request->device);
+            if ($device->status != 'Connected') {
+                return back()->with('alert', ['type' => 'danger', 'msg' => 'Your sender is not connected!']);
+            }
+            // add cache for 60 minutes
+            $respon = Cache::remember('groups' . $device->body, 60, function () use ($device) {
+                return $this->wa->fetchGroups($device);
+            });
 
-       if($respon->status === false){
-        return back()->with('alert',['type' => 'danger','msg' => $respon->message ]);
-       }
+            if ($respon->status === false) {
+                return back()->with('alert', ['type' => 'danger', 'msg' => $respon->message]);
+            }
 
-       if (count($respon->data) < 1) {
-            Cache::forget('groups'.$device->body);
-            return back()->with('alert',['type' => 'danger','msg' => 'No groups found!,try in a few minutes']);
-         }
-                
-                foreach ($respon->data as $group) {
-                    // insert to tags
-                       $namePhoneBook = $group->subject . '( ID : ' . $group->id . ' )';
-                   $validNamePhoneBook = preg_replace('/[^a-zA-Z0-9():\s@.-]+/', '', $namePhoneBook);
-                      $tag = $request->user()->phonebooks()->firstOrCreate(['name' => $validNamePhoneBook]);
-                    
-                   foreach ($group->participants as $member) {
-                      $number = str_replace('@s.whatsapp.net','',$member->id);
-                      $cek = $request->user()->contacts()->where('tag_id',$tag->id)->where('number',$number)->count();
-                     if($cek < 1){
-                          $tag->contacts()->create(['user_id' =>$request->user()->id,'name' => $number,'number' => $number]);
-                     }
+            if (count($respon->data) < 1) {
+                Cache::forget('groups' . $device->body);
+                return back()->with('alert', ['type' => 'danger', 'msg' => 'No groups found!,try in a few minutes']);
+            }
 
-                   }
+            foreach ($respon->data as $group) {
+
+                // insert to tags
+
+                $namePhoneBook = $group->subject . '( ID : ' . $group->id . ' )';
+                $validNamePhoneBook = preg_replace('/[^a-zA-Z0-9():\s@.-]+/', '', $namePhoneBook);
+                $tag = $request->user()->phonebooks()->firstOrCreate(['name' => $validNamePhoneBook]);
+
+                foreach ($group->participants as $member) {
+                    $memberId = $member->phoneNumber ?? $member->id;
+                    $number = str_replace('@s.whatsapp.net', '', $memberId);
+                    $cek = $request->user()->contacts()->where('tag_id', $tag->id)->where('number', $number)->count();
+                    if ($cek < 1) {
+                        $tag->contacts()->create(['user_id' => $request->user()->id, 'name' => $number, 'number' => $number]);
+                    }
                 }
-                return back()->with('alert',[
-                    'type' => 'success',
-                    'msg' => 'Generate success'
-                ]);
-         
-       } catch (\Throwable $th) {
-        throw $th;
-             return back()->with('alert',['type' => 'danger','msg' => 'Something went wrong! (fg)']);
-       }
+            }
+            return back()->with('alert', [
+                'type' => 'success',
+                'msg' => 'Generate success'
+            ]);
+        } catch (\Throwable $th) {
+            throw $th;
+            return back()->with('alert', ['type' => 'danger', 'msg' => 'Something went wrong! (fg)']);
+        }
     }
 
-    public function clearPhonebook(Request $request){
+    public function clearPhonebook(Request $request)
+    {
         try {
             $request->user()->phonebooks()->delete();
-            return response()->json(['error' => false,'msg' => 'Success clear phonebook!']);
+            return response()->json(['error' => false, 'msg' => 'Success clear phonebook!']);
         } catch (\Throwable $th) {
-            return response()->json(['error' => true,'msg' => 'Something went wrong! (cp)']);
+            return response()->json(['error' => true, 'msg' => 'Something went wrong! (cp)']);
         }
     }
-
 }

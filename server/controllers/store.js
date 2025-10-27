@@ -1,6 +1,7 @@
 'use strict'
 
-const fs = require('fs')
+import fs from "fs";
+
 
 const chats = (req, res) => {
 
@@ -38,6 +39,6 @@ const chats = (req, res) => {
 
 
 
-module.exports = {
+export {
     chats
 }

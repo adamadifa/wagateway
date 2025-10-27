@@ -5,8 +5,7 @@
         <nav class="flex" aria-label="Breadcrumb">
             <ol class="inline-flex items-center space-x-1 md:space-x-3">
                 <li class="inline-flex items-center">
-                    <a href="{{ route('home') }}"
-                        class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-dark-blue-600">
+                    <a href="{{ route('home') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-dark-blue-600">
                         <i class="bi bi-house-fill mr-2"></i>
                         Dashboard
                     </a>
@@ -156,6 +155,38 @@
                                 </div>
                             </div>
 
+                            <!-- Phonebook -->
+                            <div class="mb-4">
+                                <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Phonebook
+                                </h4>
+                                <div class="space-y-1">
+                                    <a href="#phonebook-fetch-groups"
+                                        class="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                                        data-tab="phonebook-fetch-groups">
+                                        <i class="bi bi-people mr-3 text-gray-400"></i>
+                                        Fetch Groups
+                                    </a>
+                                    <a href="#phonebook-get"
+                                        class="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                                        data-tab="phonebook-get">
+                                        <i class="bi bi-telephone mr-3 text-gray-400"></i>
+                                        Get Phonebook
+                                    </a>
+                                    <a href="#phonebook-clear"
+                                        class="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                                        data-tab="phonebook-clear">
+                                        <i class="bi bi-trash mr-3 text-gray-400"></i>
+                                        Clear Phonebook
+                                    </a>
+                                    <a href="#phonebook-group-contacts"
+                                        class="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                                        data-tab="phonebook-group-contacts">
+                                        <i class="bi bi-person-lines-fill mr-3 text-gray-400"></i>
+                                        Group Contacts
+                                    </a>
+                                </div>
+                            </div>
+
                             <!-- Utilities -->
                             <div class="mb-4">
                                 <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-2">Utilities
@@ -231,6 +262,13 @@
                     {{-- example webhook --}}
                     @include('pages.api-docs.examplewebhook')
                     {{-- end example webhook --}}
+
+                    {{-- phonebook apis --}}
+                    @include('pages.api-docs.phonebook-fetch-groups')
+                    @include('pages.api-docs.phonebook-get')
+                    @include('pages.api-docs.phonebook-clear')
+                    @include('pages.api-docs.phonebook-group-contacts')
+                    {{-- end phonebook apis --}}
 
                 </div>
             </div>
