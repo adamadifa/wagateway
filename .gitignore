@@ -102,7 +102,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public
 
 # Storybook build outputs
 .out
@@ -131,9 +131,9 @@ temp/
 *.old
 
 # Compiled assets
-/public/css/
-/public/js/
-/public/mix-manifest.json
+# /public/css/
+# /public/js/
+# /public/mix-manifest.json
 
 # Laravel specific
 Homestead.json
@@ -164,7 +164,7 @@ composer.lock
 
 # Upload files
 /uploads/
-/public/uploads/
+# /public/uploads/
 
 # WhatsApp specific
 /qr/
