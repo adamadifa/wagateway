@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{{-- <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
@@ -189,6 +189,65 @@
         <div class="text-center mt-8">
             <p class="text-white/60 text-sm">© 2025 All rights reserved.</p>
         </div>
+    </div>
+</body>
+
+</html> --}}
+
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>WA Gateway</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+        html,
+        body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .wa-icon {
+            font-size: 96px;
+            color: #22c55e;
+            /* green-500 */
+            filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.35));
+        }
+
+        .title {
+            margin-top: 16px;
+            color: #ffffff;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+    </style>
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <link rel="icon" href="{{ asset('favicon.ico') }}">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#1e3a8a">
+</head>
+
+<body>
+    <div class="center" role="status" aria-live="polite">
+        <i class="bi bi-whatsapp wa-icon" aria-hidden="true"></i>
+        <div class="title">WA GATEWAY IS ONLINE</div>
     </div>
 </body>
 
