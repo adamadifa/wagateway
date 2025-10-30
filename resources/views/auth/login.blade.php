@@ -187,7 +187,7 @@
 
         <!-- Footer -->
         <div class="text-center mt-8">
-            <p class="text-white/60 text-sm">© 2024 MPWA MD version. All rights reserved.</p>
+            <p class="text-white/60 text-sm">© 2025 All rights reserved.</p>
         </div>
     </div>
 </body>
