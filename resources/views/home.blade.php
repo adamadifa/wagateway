@@ -31,7 +31,7 @@
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <!-- Total Devices Card -->
-        <div
+        {{-- <div
             class="bg-gradient-to-br from-dark-blue-600 to-dark-blue-700 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
             <div class="flex items-center justify-between">
                 <div>
@@ -43,10 +43,10 @@
                     <i class="bi bi-whatsapp text-2xl"></i>
                 </div>
             </div>
-        </div>
+        </div> --}}
 
         <!-- Blast/Bulk Card -->
-        <div
+        {{-- <div
             class="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
             <div class="flex items-center justify-between">
                 <div>
@@ -66,10 +66,10 @@
                     <i class="bi bi-broadcast text-2xl"></i>
                 </div>
             </div>
-        </div>
+        </div> --}}
 
         <!-- Subscription Status Card -->
-        <div
+        {{-- <div
             class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
             <div class="flex items-center justify-between">
                 <div>
@@ -96,7 +96,7 @@
                     <i class="bi bi-chat-left-text text-2xl"></i>
                 </div>
             </div>
-        </div>
+        </div> --}}
     </div>
     <!-- WhatsApp Account Section -->
     <div class="bg-white  rounded-xl shadow-lg border border-gray-200 ">
@@ -180,17 +180,16 @@
                                     @csrf
                                     <input type="text"
                                         class="w-full px-3 py-2 border-0 bg-gray-50 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-dark-blue-500 focus:bg-white webhook-url-form transition-colors duration-200"
-                                        data-id="{{ $number['body'] }}" name=""
-                                        value="{{ $number['webhook'] }}" placeholder="Enter webhook URL">
+                                        data-id="{{ $number['body'] }}" name="" value="{{ $number['webhook'] }}"
+                                        placeholder="Enter webhook URL">
                                 </form>
                             </td>
 
                             <!-- Read Toggle -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" data-url="{{ route('setHookRead') }}"
-                                        class="sr-only peer toggle-read" data-id="{{ $number['body'] }}"
-                                        {{ $number['wh_read'] ? 'checked' : '' }}>
+                                    <input type="checkbox" data-url="{{ route('setHookRead') }}" class="sr-only peer toggle-read"
+                                        data-id="{{ $number['body'] }}" {{ $number['wh_read'] ? 'checked' : '' }}>
                                     <div
                                         class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-dark-blue-300 dark:peer-focus:ring-dark-blue-800 rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-0 after:rounded-full after:h-5 after:w-5 after:transition-all  peer-checked:bg-dark-blue-600">
                                     </div>
@@ -203,9 +202,8 @@
                             <!-- Reject Call Toggle -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" data-url="{{ route('setHookReject') }}"
-                                        class="sr-only peer toggle-reject" data-id="{{ $number['body'] }}"
-                                        {{ $number['reject_call'] ? 'checked' : '' }}>
+                                    <input type="checkbox" data-url="{{ route('setHookReject') }}" class="sr-only peer toggle-reject"
+                                        data-id="{{ $number['body'] }}" {{ $number['reject_call'] ? 'checked' : '' }}>
                                     <div
                                         class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-dark-blue-300 dark:peer-focus:ring-dark-blue-800 rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-0 after:rounded-full after:h-5 after:w-5 after:transition-all  peer-checked:bg-dark-blue-600">
                                     </div>
@@ -218,9 +216,8 @@
                             <!-- Online Toggle -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" data-url="{{ route('setAvailable') }}"
-                                        class="sr-only peer toggle-available" data-id="{{ $number['body'] }}"
-                                        {{ $number['set_available'] ? 'checked' : '' }}>
+                                    <input type="checkbox" data-url="{{ route('setAvailable') }}" class="sr-only peer toggle-available"
+                                        data-id="{{ $number['body'] }}" {{ $number['set_available'] ? 'checked' : '' }}>
                                     <div
                                         class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-dark-blue-300 dark:peer-focus:ring-dark-blue-800 rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-0 after:rounded-full after:h-5 after:w-5 after:transition-all  peer-checked:bg-dark-blue-600">
                                     </div>
@@ -233,9 +230,8 @@
                             <!-- Typing Toggle -->
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" data-url="{{ route('setHookTyping') }}"
-                                        class="sr-only peer toggle-typing" data-id="{{ $number['body'] }}"
-                                        {{ $number['wh_typing'] ? 'checked' : '' }}>
+                                    <input type="checkbox" data-url="{{ route('setHookTyping') }}" class="sr-only peer toggle-typing"
+                                        data-id="{{ $number['body'] }}" {{ $number['wh_typing'] ? 'checked' : '' }}>
                                     <div
                                         class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-dark-blue-300 dark:peer-focus:ring-dark-blue-800 rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-0 after:rounded-full after:h-5 after:w-5 after:transition-all  peer-checked:bg-dark-blue-600">
                                     </div>
@@ -247,8 +243,7 @@
 
                             <!-- Messages Sent -->
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800  ">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800  ">
                                     {{ $number['message_sent'] }}
                                 </span>
                             </td>
@@ -267,14 +262,12 @@
                                 <div class="flex items-center space-x-2">
                                     <a href="{{ route('connect-via-code', $number->body) }}"
                                         class="text-blue-600 hover:text-blue-900   p-2 rounded-lg hover:bg-blue-50  transition-colors duration-200"
-                                        data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                        title="{{ __('Connect Via Code') }}">
+                                        data-bs-toggle="tooltip" data-bs-placement="bottom" title="{{ __('Connect Via Code') }}">
                                         <i class="bi bi-phone"></i>
                                     </a>
                                     <a href="{{ route('scan', $number->body) }}"
                                         class="text-green-600 hover:text-green-900   p-2 rounded-lg hover:bg-green-50  transition-colors duration-200"
-                                        data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                        title="{{ __('Connect Via QR') }}">
+                                        data-bs-toggle="tooltip" data-bs-placement="bottom" title="{{ __('Connect Via QR') }}">
                                         <i class="bi bi-qr-code"></i>
                                     </a>
                                     <form action="{{ route('deleteDevice') }}" method="POST" class="inline">
@@ -283,8 +276,7 @@
                                         <input name="deviceId" type="hidden" value="{{ $number['id'] }}">
                                         <button type="submit" name="delete"
                                             class="text-red-600 hover:text-red-900   p-2 rounded-lg hover:bg-red-50  transition-colors duration-200"
-                                            data-bs-toggle="tooltip" data-bs-placement="bottom"
-                                            title="{{ __('Delete Device') }}"
+                                            data-bs-toggle="tooltip" data-bs-placement="bottom" title="{{ __('Delete Device') }}"
                                             onclick="return confirm('Are you sure you want to delete this device?')">
                                             <i class="bi bi-trash"></i>
                                         </button>
@@ -375,8 +367,7 @@
                             </div>
                             <h3 class="text-lg font-semibold">Add New Device</h3>
                         </div>
-                        <button type="button" onclick="closeModal()"
-                            class="text-white hover:text-gray-200 transition-colors">
+                        <button type="button" onclick="closeModal()" class="text-white hover:text-gray-200 transition-colors">
                             <i class="bi bi-x-lg text-xl"></i>
                         </button>
                     </div>
