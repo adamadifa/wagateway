@@ -25,7 +25,7 @@
             </a>
 
             <!-- File Manager -->
-            <a href="{{ route('file-manager') }}"
+            {{-- <a href="{{ route('file-manager') }}"
                 class="flex items-center px-3 py-2 rounded-lg transition-colors duration-200 {{ request()->is('file-manager') ? 'text-white' : '' }}"
                 style="color: #93C5FD;" onmouseover="this.style.backgroundColor='#1E40AF'; this.style.color='white';"
                 onmouseout="this.style.backgroundColor=''; this.style.color='{{ request()->is('file-manager') ? 'white' : '#93C5FD' }}';">
@@ -65,13 +65,13 @@
                         <span class="text-sm">{{ __('Messages History') }}</span>
                     </a>
                 </div>
-            </div>
+            </div> --}}
 
-            <x-select-device></x-select-device>
+            {{-- <x-select-device></x-select-device> --}}
 
             <!-- Device Management Section -->
             @if (Session::has('selectedDevice'))
-                <div class="space-y-1 mt-4">
+                {{-- <div class="space-y-1 mt-4">
                     <div class="flex items-center px-3 py-1 text-sm font-semibold uppercase tracking-wider" style="color: #60A5FA;">
                         {{ __('Device Management') }}
                     </div>
@@ -103,15 +103,15 @@
                         <i class="bi bi-chat-dots text-lg mr-3"></i>
                         <span class="font-medium">{{ __('Test Message') }}</span>
                     </a>
-                </div>
+                </div> --}}
             @endif
 
             <!-- API Documentation -->
-            <a href="{{ route('rest-api') }}"
+            {{-- <a href="{{ route('rest-api') }}"
                 class="flex items-center px-3 py-2 text-blue-100 rounded-lg hover:bg-blue-500 hover:text-white transition-colors duration-200 {{ url()->current() == route('rest-api') ? 'bg-blue-500 text-white' : '' }}">
                 <i class="bi bi-code-square text-lg mr-3"></i>
                 <span class="font-medium">{{ __('API Docs') }}</span>
-            </a>
+            </a> --}}
 
             <!-- Admin Section -->
             @if (Auth::user()->level == 'admin')
@@ -129,7 +129,7 @@
                             <span class="text-sm">{{ __('Setting Server') }}</span>
                         </a>
 
-                        <a href="{{ route('update') }}"
+                        {{-- <a href="{{ route('update') }}"
                             class="flex items-center px-5 py-1 text-blue-100 rounded-lg hover:bg-blue-500 hover:text-white transition-colors duration-200 {{ request()->is('update') ? 'bg-blue-500 text-white' : '' }}">
                             <i class="bi bi-circle text-xs mr-3"></i>
                             <span class="text-sm">{{ __('Update') }}</span>
@@ -139,7 +139,7 @@
                             class="flex items-center px-5 py-1 text-blue-100 rounded-lg hover:bg-blue-500 hover:text-white transition-colors duration-200 {{ request()->is('admin.manage-users') ? 'bg-blue-500 text-white' : '' }}">
                             <i class="bi bi-circle text-xs mr-3"></i>
                             <span class="text-sm">{{ __('Manage User') }}</span>
-                        </a>
+                        </a> --}}
                     </div>
                 </div>
             @endif
