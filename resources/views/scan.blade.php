@@ -9,8 +9,7 @@
                             <div class="px-6 py-4 border-b border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center">
-                                        <div
-                                            class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
                                             <i class="bi bi-qr-code-scan text-green-600 text-xl"></i>
                                         </div>
                                         <div>
@@ -66,16 +65,14 @@
                                 <div class="text-center">
                                     <div class="imageee mb-4">
                                         @if (Auth::user()->is_expired_subscription)
-                                            <div
-                                                class="w-80 h-80 mx-auto bg-red-50 rounded-xl flex items-center justify-center">
-                                                <img src="{{ asset('images/other/expired.png') }}"
-                                                    class="max-w-full max-h-full rounded-lg" alt="Subscription Expired">
+                                            <div class="w-80 h-80 mx-auto bg-red-50 rounded-xl flex items-center justify-center">
+                                                <img src="{{ asset('images/other/expired.png') }}" class="max-w-full max-h-full rounded-lg"
+                                                    alt="Subscription Expired">
                                             </div>
                                         @else
-                                            <div
-                                                class="w-80 h-80 mx-auto bg-gray-50 rounded-xl flex items-center justify-center">
-                                                <img src="{{ asset('assets/images/waiting.jpg') }}"
-                                                    class="max-w-full max-h-full rounded-lg" alt="Waiting for QR Code">
+                                            <div class="w-80 h-80 mx-auto bg-gray-50 rounded-xl flex items-center justify-center">
+                                                <img src="{{ asset('assets/images/waiting.jpg') }}" class="max-w-full max-h-full rounded-lg"
+                                                    alt="Waiting for QR Code">
                                             </div>
                                         @endif
                                     </div>
@@ -91,8 +88,7 @@
                                             <button
                                                 class="inline-flex items-center px-6 py-3 bg-blue-600 text-white text-sm font-medium rounded-lg cursor-not-allowed opacity-75"
                                                 disabled>
-                                                <div
-                                                    class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2">
+                                                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2">
                                                 </div>
                                                 {{ __('Waiting For node server..') }}
                                             </button>
@@ -109,8 +105,7 @@
                             <div class="px-6 py-4 border-b border-gray-200">
                                 <div class="flex items-center justify-between">
                                     <h3 class="text-lg font-semibold text-gray-900">WhatsApp Info</h3>
-                                    <span
-                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                         <i class="bi bi-clock mr-1"></i>
                                         Updated 5 min ago
                                     </span>
@@ -120,8 +115,7 @@
                                 <div class="space-y-4">
                                     <div class="flex items-center justify-between py-3 border-b border-gray-100">
                                         <div class="flex items-center">
-                                            <div
-                                                class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                                            <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
                                                 <i class="bi bi-person text-gray-600"></i>
                                             </div>
                                             <span class="text-sm font-medium text-gray-700">Name</span>
@@ -131,8 +125,7 @@
 
                                     <div class="flex items-center justify-between py-3 border-b border-gray-100">
                                         <div class="flex items-center">
-                                            <div
-                                                class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                                            <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
                                                 <i class="bi bi-telephone text-gray-600"></i>
                                             </div>
                                             <span class="text-sm font-medium text-gray-700">Number</span>
@@ -142,8 +135,7 @@
 
                                     <div class="flex items-center justify-between py-3">
                                         <div class="flex items-center">
-                                            <div
-                                                class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                                            <div class="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
                                                 <i class="bi bi-phone text-gray-600"></i>
                                             </div>
                                             <span class="text-sm font-medium text-gray-700">Device</span>
@@ -192,24 +184,86 @@
         }
     </style>
 </x-layout-dashboard>
-<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"
-    integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous">
-</script>
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js" integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+"
+    crossorigin="anonymous"></script>
 <script>
     // if subscription not expired
     const is_expired_subscription = '{{ Auth::user()->is_expired_subscription }}';
     if (!is_expired_subscription) {
         let socket;
         let device = '{{ $number->body }}';
+        let socketUrl = '{{ env('WA_URL_SERVER') }}';
+        let portNode = '{{ env('PORT_NODE') }}';
+
+        // Jika TYPE_SERVER=hosting, pastikan menggunakan URL dengan port yang benar
         if ('{{ env('TYPE_SERVER') }}' === 'hosting') {
-            socket = io();
+            // Jika WA_URL_SERVER tidak mengandung port, tambahkan PORT_NODE
+            if (socketUrl && !socketUrl.includes(':' + portNode) && !socketUrl.match(/:\d+$/)) {
+                // Hapus trailing slash jika ada
+                socketUrl = socketUrl.replace(/\/$/, '');
+                // Tambahkan port
+                socketUrl = socketUrl + ':' + portNode;
+            }
+            socket = io(socketUrl, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 2000, // Increased from 1000 to 2000
+                reconnectionDelayMax: 10000, // Max delay between reconnection attempts
+                reconnectionAttempts: 10, // Increased from 5 to 10
+                timeout: 30000, // Connection timeout
+                forceNew: false, // Reuse existing connection if available
+                upgrade: true, // Allow transport upgrades
+                rememberUpgrade: true, // Remember transport upgrade
+            });
         } else {
-            socket = io('{{ env('WA_URL_SERVER') }}', {
-                transports: ['websocket', 'polling', 'flashsocket']
+            socket = io(socketUrl, {
+                transports: ['websocket', 'polling', 'flashsocket'],
+                reconnection: true,
+                reconnectionDelay: 2000,
+                reconnectionDelayMax: 10000,
+                reconnectionAttempts: 10,
+                timeout: 30000,
             });
         }
 
-        socket.emit('StartConnection', '{{ $number->body }}')
+        // Handle connection errors
+        socket.on('connect_error', (error) => {
+            console.error('Socket connection error:', error);
+            $('#connection-status').text('Connection Error');
+            $('.statusss').html(`<button class="inline-flex items-center px-6 py-3 bg-red-600 text-white text-sm font-medium rounded-lg cursor-not-allowed opacity-75" disabled>
+                <i class="bi bi-exclamation-triangle mr-2"></i>
+                Connection Error: ${error.message || 'Service Unavailable. Retrying...'}
+            </button>`);
+        });
+
+        socket.on('connect', () => {
+            console.log('Socket connected successfully');
+            $('#connection-status').text('Connected');
+            // Emit StartConnection after successful connection
+            socket.emit('StartConnection', '{{ $number->body }}');
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.log('Socket disconnected:', reason);
+            if (reason === 'io server disconnect') {
+                // Server disconnected, need to reconnect manually
+                socket.connect();
+            }
+        });
+
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            $('#connection-status').text('Error');
+            $('.statusss').html(`<button class="inline-flex items-center px-6 py-3 bg-red-600 text-white text-sm font-medium rounded-lg cursor-not-allowed opacity-75" disabled>
+                <i class="bi bi-exclamation-triangle mr-2"></i>
+                ${error.message || 'An error occurred. Please refresh the page.'}
+            </button>`);
+        });
+
+        // Wait for connection before emitting
+        if (socket.connected) {
+            socket.emit('StartConnection', '{{ $number->body }}');
+        }
         socket.on('qrcode', ({
             token,
             data,

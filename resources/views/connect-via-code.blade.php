@@ -94,16 +94,75 @@
     if (!is_expired_subscription) {
         let socket;
         let device = '{{ $number->body }}';
+        let socketUrl = '{{ env('WA_URL_SERVER') }}';
+        let portNode = '{{ env('PORT_NODE') }}';
+        
+        // Jika TYPE_SERVER=hosting, pastikan menggunakan URL dengan port yang benar
         if ('{{ env('TYPE_SERVER') }}' === 'hosting') {
-            socket = io();
+            // Jika WA_URL_SERVER tidak mengandung port, tambahkan PORT_NODE
+            if (socketUrl && !socketUrl.includes(':' + portNode) && !socketUrl.match(/:\d+$/)) {
+                // Hapus trailing slash jika ada
+                socketUrl = socketUrl.replace(/\/$/, '');
+                // Tambahkan port
+                socketUrl = socketUrl + ':' + portNode;
+            }
+            socket = io(socketUrl, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionDelay: 2000, // Increased from 1000 to 2000
+                reconnectionDelayMax: 10000, // Max delay between reconnection attempts
+                reconnectionAttempts: 10, // Increased from 5 to 10
+                timeout: 30000, // Connection timeout
+                forceNew: false, // Reuse existing connection if available
+                upgrade: true, // Allow transport upgrades
+                rememberUpgrade: true, // Remember transport upgrade
+            });
         } else {
-            socket = io('{{ env('WA_URL_SERVER') }}', {
-                transports: ['websocket', 'polling', 'flashsocket']
+            socket = io(socketUrl, {
+                transports: ['websocket', 'polling', 'flashsocket'],
+                reconnection: true,
+                reconnectionDelay: 2000,
+                reconnectionDelayMax: 10000,
+                reconnectionAttempts: 10,
+                timeout: 30000,
             });
         }
 
+        // Handle connection errors
+        socket.on('connect_error', (error) => {
+            console.error('Socket connection error:', error);
+            $('.statusss').html(`<button class="btn btn-danger" type="button" disabled>
+                <span class="" role="status" aria-hidden="true"></span>
+                Connection Error: ${error.message || 'Service Unavailable. Retrying...'}
+            </button>`);
+        });
 
-        socket.emit('ConnectViaCode', '{{ $number->body }}')
+        socket.on('connect', () => {
+            console.log('Socket connected successfully');
+            // Emit ConnectViaCode after successful connection
+            socket.emit('ConnectViaCode', '{{ $number->body }}');
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.log('Socket disconnected:', reason);
+            if (reason === 'io server disconnect') {
+                // Server disconnected, need to reconnect manually
+                socket.connect();
+            }
+        });
+
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            $('.statusss').html(`<button class="btn btn-danger" type="button" disabled>
+                <span class="" role="status" aria-hidden="true"></span>
+                ${error.message || 'An error occurred. Please refresh the page.'}
+            </button>`);
+        });
+
+        // Wait for connection before emitting
+        if (socket.connected) {
+            socket.emit('ConnectViaCode', '{{ $number->body }}');
+        }
         socket.on('code', ({
             token,
             data,
